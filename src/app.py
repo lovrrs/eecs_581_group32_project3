@@ -29,6 +29,7 @@ def main():
             print("  add    -> create a new task")
             print("  list   -> list all tasks")
             print("  select -> toggle selection by id")
+            print("  export -> creates text file with task info")
             print("  quit   -> exit program")
         elif cmd == "add":
             name = input("Task name: ").strip()
@@ -53,6 +54,15 @@ def main():
                 print(f"Selection toggled. selected={bool(new_val)}")
             except Exception as e:
                 print("Error:", e)
+        elif cmd == "export":
+            rows = repo.list_tasks()
+            with open("tasks_output.txt", "w", encoding="utf-8") as f:
+                if not rows:
+                    f.write("(no tasks yet)\n")
+                else:
+                    for t in rows:
+                        line = f"{t[0]}. {t[1]} - {t[2]} min - selected={bool(t[3])}\n"
+                        f.write(line)
         elif cmd == "quit":
             print("Goodbye!")
             break
