@@ -1,6 +1,6 @@
 # File: src/db.py
 # Description: Handles DB connection and migration execution.
-# Programmer(s): K. Li
+# Programmer(s): Jace Keagy, K Li, Lan Lim, Jenna Luong, Kit Magar, Bryce Martin
 # Created: 2025-10-20
 # Revisions:
 #   2025-10-22 - Added run_migrations()

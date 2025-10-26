@@ -1,8 +1,8 @@
 /*
 File: db/migrate_001_init.sql
-Project: EECS 581 - Group XX - Sprint 1
+Project: EECS 581 - Group 32 - Sprint 1
 Description: Initializes SQLite schema for users and tasks
-Programmer(s): K. Li, Teammate Names
+Programmer(s): Jace Keagy, K Li, Lan Lim, Jenna Luong, Kit Magar, Bryce Martin
 Created: 2025-10-20
 */
 CREATE TABLE IF NOT EXISTS users (

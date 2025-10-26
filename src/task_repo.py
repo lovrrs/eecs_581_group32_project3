@@ -1,6 +1,6 @@
 # File: src/task_repo.py
 # Description: Repository layer for CRUD on tasks.
-# Programmer(s): K. Li
+# Programmer(s): Jace Keagy, K Li, Lan Lim, Jenna Luong, Kit Magar, Bryce Martin
 # Created: 2025-10-21
 
 from typing import List, Tuple

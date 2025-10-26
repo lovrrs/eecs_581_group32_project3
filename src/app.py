@@ -1,6 +1,6 @@
 # File: src/app.py
 # Description: Simple CLI to interact with the scheduler DB.
-# Programmer(s): K. Li
+# Programmer(s): Jace Keagy, K Li, Lan Lim, Jenna Luong, Kit Magar, Bryce Martin
 # Created: 2025-10-21
 
 from src.db import run_migrations, get_connection

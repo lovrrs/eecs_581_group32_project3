@@ -1,7 +1,7 @@
 # Sprint 1 Release - Smart Scheduler (Python)
 
 Team: Group 32  
-Members: K Li
+Members: Jace Keagy, K Li, Lan Lim, Jenna Luong, Kit Magar, Bryce Martin
 Sprint Duration: Oct 12 - Oct 26, 2025  
 Release: v0.1.0
 
