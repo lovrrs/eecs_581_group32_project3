@@ -26,6 +26,26 @@ class TaskRepo:
                 (self.user_id, name.strip(), duration),
             )
             return cur.lastrowid
+        
+    def delete_task(self, task_id: int) -> bool:
+        """Delete a task by ID. Returns True if deleted, False if not found."""
+        if not isinstance(task_id, int) or task_id <= 0:
+            raise ValueError("Invalid task ID.")
+        with get_connection() as conn:
+            # Check if exists
+            cur = conn.execute(
+                "SELECT 1 FROM tasks WHERE id = ? AND user_id = ?",
+                (task_id, self.user_id),
+            )
+            row = cur.fetchone()
+            if row is None:
+                return False
+            # Remove in SQL
+            conn.execute(
+                "DELETE FROM tasks WHERE id = ? AND user_id = ?",
+                (task_id, self.user_id),
+            )
+            return True
 
     def list_tasks(self) -> List[Tuple[int, str, int, int]]:
         """Return all tasks for this user (US-03)."""

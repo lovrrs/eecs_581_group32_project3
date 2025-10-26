@@ -27,6 +27,7 @@ def main():
         if cmd == "help":
             print("Commands: add, list, select, quit")
             print("  add    -> create a new task")
+            print("  delete -> removes a task")
             print("  list   -> list all tasks")
             print("  select -> toggle selection by id")
             print("  export -> creates text file with task info")
@@ -38,6 +39,17 @@ def main():
                 duration = int(duration_str)
                 repo.add_task(name, duration)
                 print("Task added.")
+            except Exception as e:
+                print("Error:", e)
+        elif cmd == "delete":
+            task_id_str = input("Task ID to delete: ").strip()
+            try:
+                task_id = int(task_id_str)
+                deleted = repo.delete_task(task_id)  # returns True/False
+                if deleted:
+                    print("Task deleted.")
+                else:
+                    print("No task with that ID for this user.")
             except Exception as e:
                 print("Error:", e)
         elif cmd == "list":
