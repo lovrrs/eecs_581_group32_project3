@@ -3,7 +3,7 @@
 Team: Group 32  
 Members: Jace Keagy, K Li, Lan Lim, Jenna Luong, Kit Magar, Bryce Martin
 Sprint Duration: Oct 12 - Oct 26, 2025  
-Release: v0.1.0
+Release: v0.1.1
 
 ## Features Implemented (Sprint 1)
 - US-01: Basic interface shell (CLI)
@@ -11,6 +11,8 @@ Release: v0.1.0
 - US-03: View tasks
 - US-04: Select/unselect task
 - US-14: SQLite persistence (migrations)
+- US-16: Export list to file
+- US-21: Delete task
 
 ## How to Run
 ```bash
