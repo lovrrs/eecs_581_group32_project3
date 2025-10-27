@@ -16,7 +16,14 @@ def main():
     run_migrations()
     user_id = _get_default_user_id()
     repo = TaskRepo(user_id=user_id)
-    print("Welcome to Sprint 1 Scheduler! Type 'help' for commands.")
+    print("Welcome to Sprint 1 Scheduler!\n")
+    print("MAIN MENU\n",
+          "1. Add a new task\n",
+          "2. Delete a task\n",
+          "3. List all tasks\n",
+          "4. Select a task by ID\n",
+          "5. Export task info\n",
+          "6. Quit")
     while True:
         try:
             cmd = input("> ").strip().lower()
@@ -24,15 +31,7 @@ def main():
             print("\nBye!")
             break
 
-        if cmd == "help":
-            print("Commands: add, list, select, quit")
-            print("  add    -> create a new task")
-            print("  delete -> removes a task")
-            print("  list   -> list all tasks")
-            print("  select -> toggle selection by id")
-            print("  export -> creates text file with task info")
-            print("  quit   -> exit program")
-        elif cmd == "add":
+        if cmd == "1":
             name = input("Task name: ").strip()
             duration_str = input("Duration (min, integer > 0): ").strip()
             try:
@@ -41,7 +40,7 @@ def main():
                 print("Task added.")
             except Exception as e:
                 print("Error:", e)
-        elif cmd == "delete":
+        elif cmd == "2":
             task_id_str = input("Task ID to delete: ").strip()
             try:
                 task_id = int(task_id_str)
@@ -52,13 +51,13 @@ def main():
                     print("No task with that ID for this user.")
             except Exception as e:
                 print("Error:", e)
-        elif cmd == "list":
+        elif cmd == "3":
             rows = repo.list_tasks()
             if not rows:
                 print("(no tasks yet)")
             for t in rows:
-                print(f"{t[0]}. {t[1]} - {t[2]} min - selected={bool(t[3])}")
-        elif cmd == "select":
+                print(f"{t[0]}. {t[1]} ({t[2]} minutes) - selected={bool(t[3])}")
+        elif cmd == "4":
             tid_str = input("Task ID: ").strip()
             try:
                 tid = int(tid_str)
@@ -66,7 +65,7 @@ def main():
                 print(f"Selection toggled. selected={bool(new_val)}")
             except Exception as e:
                 print("Error:", e)
-        elif cmd == "export":
+        elif cmd == "5":
             rows = repo.list_tasks()
             with open("tasks_output.txt", "w", encoding="utf-8") as f:
                 if not rows:
@@ -75,11 +74,11 @@ def main():
                     for t in rows:
                         line = f"{t[0]}. {t[1]} - {t[2]} min - selected={bool(t[3])}\n"
                         f.write(line)
-        elif cmd == "quit":
+        elif cmd == "6":
             print("Goodbye!")
             break
         else:
-            print("Unknown command. Type 'help'.")
+            print("Unknown command. Select a command from the main menu.")
 
 if __name__ == "__main__":
     main()
