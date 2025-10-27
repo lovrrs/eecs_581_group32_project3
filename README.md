@@ -26,11 +26,11 @@ python -m src.app
 ```
 
 ## Demo Script
-1. add -> name=Study, duration=60
-2. list
-3. select -> id=1
-4. list
-5. quit
+1. 1 -> name=Study, duration=60
+2. 3
+3. 4 -> id=1
+4. 3
+5. 6
 
 ## Acceptance Test Checklist
 - Start app -> help text visible
