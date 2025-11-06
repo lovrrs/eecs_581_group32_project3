@@ -5,6 +5,7 @@
 
 from src.db import run_migrations, get_connection
 from src.task_repo import TaskRepo
+from src.manual_scheduler import run_manual_scheduler
 
 def _get_default_user_id() -> int:
     with get_connection() as conn:
@@ -23,7 +24,9 @@ def main():
           "3. List all tasks\n",
           "4. Select a task by ID\n",
           "5. Export task info\n",
-          "6. Quit")
+          "6. Manual Scheduler\n",
+          "7. Automatic Scheduler\n",
+          "8. Quit")
     while True:
         try:
             cmd = input("> ").strip().lower()
@@ -75,6 +78,10 @@ def main():
                         line = f"{t[0]}. {t[1]} - {t[2]} min - selected={bool(t[3])}\n"
                         f.write(line)
         elif cmd == "6":
+            continue
+        elif cmd == "7":
+            continue
+        elif cmd == "8":
             print("Goodbye!")
             break
         else:
