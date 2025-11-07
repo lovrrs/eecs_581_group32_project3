@@ -67,20 +67,105 @@ class ManualScheduler:
 
         print("-"*70)
 
-    def run_manual_scheduler(user_id:int):
-        """Main function to run the manual scheduler"""
-        scheduler = ManualScheduler(user_id)
+def run_manual_scheduler(user_id:int):
+    """Main function to run the manual scheduler"""
+    scheduler = ManualScheduler(user_id)
 
-        print("\n" + "="*60)
-        print("               MANUAL SCHEDULE BUILDER")
-        print("="*60)
-        print("Build your schedule by assigning tasks to specific time slots!")
+    print("\n" + "="*60)
+    print("               MANUAL SCHEDULE BUILDER")
+    print("="*60)
+    print("Build your schedule by assigning tasks to specific time slots!")
+    print("------------------------------------------------------------")
 
-        # get available tasks
-        available_tasks = scheduler.repo.list_tasks()
+    # Get available tasks from DB
+    available_tasks = scheduler.repo.list_tasks()
+    if not available_tasks:
+        print("No tasks found. Add tasks first!")
+        return
 
-        # generate initial time slots
-        time_slots = scheduler.generate_time_slots()
+    # Generate empty time slots
+    time_slots = scheduler.generate_time_slots()
+
+    # Menu loop
+    while True:
+        print("\nOptions:")
+        print("1. View tasks")
+        print("2. View schedule grid")
+        print("3. Assign a task to a time slot")
+        print("4. Change schedule time boundaries")
+        print("5. Exit\n")
+
+        choice = input("Enter choice (1-5): ").strip()
+
+        if choice == '1':
+            print("\nAvailable Tasks:")
+            for t in available_tasks:
+                task_id, name, duration, *_ = t
+                print(f"{task_id:2d}. {name} ({duration} minutes)")
+
+        elif choice == '2':
+            print("\nCurrent Schedule:")
+            for i, slot in enumerate(time_slots, start=1):
+                start = slot['start'].strftime("%H:%M")
+                end = slot['end'].strftime("%H:%M")
+                task_name = slot['task_name'] or "-"
+                print(f"{i:2d}. {start} - {end}: {task_name}")
+
+        elif choice == '3':
+            print()
+            print("\nAssign a task to a time slot")
+
+            print("\nCurrent Schedule:")
+            for i, slot in enumerate(time_slots, start=1):
+                start = slot['start'].strftime("%H:%M")
+                end = slot['end'].strftime("%H:%M")
+                task_name = slot['task_name'] or "-"
+                print(f"{i:2d}. {start} - {end}: {task_name}")
+
+            slot_num = input("Enter time slot number: ").strip()
+
+            print("\nAvailable Tasks:")
+            for t in available_tasks:
+                task_id, name, duration, *_ = t
+                print(f"{task_id:2d}. {name} ({duration} minutes)")
+
+            task_num = input("Enter task ID to assign: ").strip()
+
+            if not (slot_num.isdigit() and task_num.isdigit()):
+                print("Invalid input. Enter numeric values.")
+                continue
+
+            slot_idx = int(slot_num) - 1
+            task_id = int(task_num)
+
+            if slot_idx < 0 or slot_idx >= len(time_slots):
+                print("Invalid slot number.")
+                continue
+
+            task = next((t for t in available_tasks if t[0] == task_id), None)
+            if not task:
+                print("Invalid task ID.")
+                continue
+
+            task_id, name, duration, *_ = task
+            time_slots[slot_idx]['task_id'] = task_id
+            time_slots[slot_idx]['task_name'] = name
+
+            print(f"Assigned '{name}' to {time_slots[slot_idx]['start'].strftime('%H:%M')} - {time_slots[slot_idx]['end'].strftime('%H:%M')}")
+
+        elif choice == '4':
+            start = input("Enter new start time (HH:MM): ")
+            end = input("Enter new end time (HH:MM): ")
+            if scheduler.set_time_boundaries(start, end):
+                time_slots = scheduler.generate_time_slots()
+                print("Updated schedule boundaries!")
+
+        elif choice == '5':
+            print("Exiting manual scheduler...")
+            break
+
+        else:
+            print("Invalid option. Try again.")
 
         
 

@@ -78,7 +78,7 @@ def main():
                         line = f"{t[0]}. {t[1]} - {t[2]} min - selected={bool(t[3])}\n"
                         f.write(line)
         elif cmd == "6":
-            continue
+            run_manual_scheduler(user_id)
         elif cmd == "7":
             continue
         elif cmd == "8":
