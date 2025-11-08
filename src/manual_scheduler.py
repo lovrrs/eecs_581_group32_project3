@@ -3,7 +3,6 @@
 # Programmer(s): Jace Keagy, K Li, Lan Lim, Jenna Luong, Kit Magar, Bryce Martin
 # Created: 2025-11-05
 
-import sys
 from datetime import datetime, time, timedelta
 from src.db import get_connection
 from src.task_repo import TaskRepo
@@ -48,7 +47,7 @@ class ManualScheduler:
             curr_time = slot_end # make curr_time the slot_end to move forward
         return slots
     
-    def display_schedule_grid(self, time_slots, available_tasks):
+    def display_schedule_grid(self, available_tasks):
         """Display schedule grid with current assignments"""
         print("\n" + "="*70)
         print("                      MANUAL SCHEDULE BUILDER")
@@ -62,10 +61,39 @@ class ManualScheduler:
         
         # display selected tasks
         for task in selected_tasks:
-            task_id, name, duration, selected = task
+            task_id, name, duration = task
             print(f'{task_id:2d}. {name} ({duration} minutes)')
 
         print("-"*70)
+
+    def save_schedule(self, time_slots, schedule_name: str = "Manual Schedule"):
+        """Save manual schedule to database"""
+        try:
+                with get_connection() as conn:
+                    # create schedule record
+                    cur = conn.execute(
+                        "INSERT INTO schedules (user_id, name, schedule_type, created at) VALUES (?, ?, ?, datetime('now'))",
+                        (self.user_id, schedule_name, 'manual')
+                    )
+                    schedule_id = cur.lastrowid
+                    
+                    # save schedule items
+                    for slot in time_slots:
+                        if slot['task_id']:
+                            conn.execute(
+                                """INSERT INTO schedule_items
+                                   (schedule_id, task_id, start_time, end_time)
+                                   VALUES (?, ?, ?, ?)""",
+                                   (schedule_id, slot['task_id'],
+                                    slot['start'].strftime('%H:%M'),
+                                    slot['end'].strftime('%H:%M'))
+                            )
+                    conn.commit()
+                    print(f"Schedule '{schedule_name}' saved successfully!")
+                    return True
+        except Exception as e:
+            print(f'Error saving schedule: {e}')
+            return False
 
 def run_manual_scheduler(user_id:int):
     """Main function to run the manual scheduler"""
@@ -77,10 +105,10 @@ def run_manual_scheduler(user_id:int):
     print("Build your schedule by assigning tasks to specific time slots!")
     print("------------------------------------------------------------")
 
-    # Get available tasks from DB
-    available_tasks = scheduler.repo.list_tasks()
+    # Get available tasks from DB - ONLY SELECTED ONES
+    available_tasks = [t for t in scheduler.repo.list_tasks() if t[3]] # t[3] is selected flag
     if not available_tasks:
-        print("No tasks found. Add tasks first!")
+        print("No tasks selected. Select tasks first!")
         return
 
     # Generate empty time slots
@@ -90,20 +118,26 @@ def run_manual_scheduler(user_id:int):
     while True:
         print("\nOptions:")
         print("1. View tasks")
-        print("2. View schedule grid")
-        print("3. Assign a task to a time slot")
-        print("4. Change schedule time boundaries")
-        print("5. Exit\n")
+        print("2. View schedule")
+        print("3. Assign a task")
+        print("4. Clear a time slot")
+        print("5. Save Schedule")
+        print("6. Change schedule time boundaries")
+        print("7. Exit")
 
-        choice = input("Enter choice (1-5): ").strip()
+        choice = input("> ").strip().lower()
 
         if choice == '1':
+            """View tasks"""
+
             print("\nAvailable Tasks:")
             for t in available_tasks:
                 task_id, name, duration, *_ = t
                 print(f"{task_id:2d}. {name} ({duration} minutes)")
 
         elif choice == '2':
+            """View schedule"""
+
             print("\nCurrent Schedule:")
             for i, slot in enumerate(time_slots, start=1):
                 start = slot['start'].strftime("%H:%M")
@@ -112,6 +146,8 @@ def run_manual_scheduler(user_id:int):
                 print(f"{i:2d}. {start} - {end}: {task_name}")
 
         elif choice == '3':
+            """Assign a task to a time slot"""
+
             print()
             print("\nAssign a task to a time slot")
 
@@ -146,6 +182,14 @@ def run_manual_scheduler(user_id:int):
             if not task:
                 print("Invalid task ID.")
                 continue
+            
+            # check if task duration fits in time slot
+            slot_duration = (datetime.combine(datetime.today(), time_slots[slot_idx]['end']) - 
+                             datetime.combine(datetime.today(), time_slots[slot_idx]['start'])).seconds // 60
+            
+            if duration > slot_duration:
+                print(f"Task '{name}' ({duration} minutes) doesn't fit in {slot_duration} min slot!")
+                continue
 
             task_id, name, duration, *_ = task
             time_slots[slot_idx]['task_id'] = task_id
@@ -154,13 +198,67 @@ def run_manual_scheduler(user_id:int):
             print(f"Assigned '{name}' to {time_slots[slot_idx]['start'].strftime('%H:%M')} - {time_slots[slot_idx]['end'].strftime('%H:%M')}")
 
         elif choice == '4':
+            """Clear a slot on the schedule"""
+
+            # print current schedule
+            print("\n Current Schedule:")
+            for i, slot in enumerate(time_slots, start=1):
+                start = slot['start'].strftime("%H:%M") # start time
+                end = slot['end'].strftime("%H:%M") # end time
+                task_name = slot['task_name'] or "-" # task name
+                print(f"{i:2d}. {start} - {end}: {task_name}")
+
+            slot_num = input("Enter time slot number: ").strip() # user input for slot number
+
+            # checks if slot num is a digit
+            if slot_num.isdigit():
+                slot_idx = int(slot_num) - 1
+
+                # checks if slot num is a valid time slot
+                if 0 <= slot_idx < len(time_slots):
+
+                    # checks if time slot is currently assigned to a task
+                    if time_slots[slot_idx]['task_name']:
+                        cleared_task = time_slots[slot_idx]['task_name'] # store cleared task for confirmation msg
+                        # reset task_id and task_name to None to clear time slot
+                        time_slots[slot_idx]['task_id'] = None
+                        time_slots[slot_idx]['task_name'] = None
+                        print(f"Cleared '{cleared_task}' from slot {slot_num}")
+                    else:
+                        print("Slot is already empty")
+
+                else:
+                    print("Invalid slot number")
+            else:
+                print("Please enter a valid number")
+
+        elif choice == '5':
+            """Save the schedule"""
+
+            # user input to get schedule name
+            name = input("Enter schedule name (or press Enter for 'Manual Schedule'): ").strip()
+            
+            # default name
+            if not name:
+                name = "Manual Schedule"
+            if scheduler.save_schedule(time_slots, name):
+                print("Schedule saved!")
+            else:
+                print("Failed to save schedule.")
+
+        elif choice == '6':
+            """Change time boundaries"""
+
             start = input("Enter new start time (HH:MM): ")
             end = input("Enter new end time (HH:MM): ")
             if scheduler.set_time_boundaries(start, end):
                 time_slots = scheduler.generate_time_slots()
                 print("Updated schedule boundaries!")
+            else:
+                print("Failed to update time boundaries. Please use HH:MM format.")
 
-        elif choice == '5':
+        elif choice == '7':
+            """Exit manual scheduler"""
             print("Exiting manual scheduler...")
             break
 
