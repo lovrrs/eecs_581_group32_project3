@@ -6,6 +6,7 @@
 from src.db import run_migrations, get_connection
 from src.task_repo import TaskRepo
 from src.manual_scheduler import run_manual_scheduler
+from src.automatic_scheduler import AutomaticScheduler
 from datetime import datetime, time, timedelta
 
 def _get_default_user_id() -> int:
@@ -140,7 +141,25 @@ def main():
             run_manual_scheduler(user_id)
         # automatic scheduler
         elif cmd == "8":
-            continue
+            scheduler = AutomaticScheduler(user_id)
+
+            print("\nAutomatic Schedule Builder")
+            print("-------------------------")
+            
+            # Optionally set time boundaries
+            print("\nWould you like to set custom time boundaries? (default: 8:00 AM - 10:00 PM)")
+            if input("Enter 'y' for custom times: ").strip().lower() == 'y':
+                print("\nEnter times in HH:MM AM/PM format (e.g., 8:00 AM)")
+                start = input("Start time: ").strip()
+                end = input("End time: ").strip()
+                if not scheduler.set_time_boundaries(start, end):
+                    print("Using default time boundaries.")
+
+            # Build and display schedule
+            schedule = scheduler.build_schedule()
+            if schedule:
+                scheduler.display_schedule(schedule)
+            
         # exit
         elif cmd == "9":
             print("Goodbye!")

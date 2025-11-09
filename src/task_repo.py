@@ -127,3 +127,23 @@ class TaskRepo:
                         'task2': (task2_id, task2_name, task2_time, task2_duration)
                     })
         return conflicts
+
+    def get_task_type(self, task_id):
+        """Get the type (fixed/flexible) of a task"""
+        with get_connection() as conn:
+            cur = conn.execute(
+                "SELECT task_type FROM tasks WHERE id=? AND user_id=?",
+                (task_id, self.user_id)
+            )
+            result = cur.fetchone()
+            return result[0] if result else 'flexible'
+
+    def get_fixed_time(self, task_id: int) -> str:
+        """Get the fixed time for a task if it exists"""
+        with get_connection() as conn:
+            cur = conn.execute(
+                "SELECT fixed_time FROM tasks WHERE id=? AND user_id=?",
+                (task_id, self.user_id)
+            )
+            result = cur.fetchone()
+            return result[0] if result else None
