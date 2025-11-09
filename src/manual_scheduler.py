@@ -11,18 +11,36 @@ class ManualScheduler:
     def __init__(self, user_id:int):
         self.user_id = user_id
         self.repo = TaskRepo(user_id=user_id)
-        self.schedule_start = time(8, 0)    # default: 8:00 AM
-        self.schedule_end = time(22, 0)     # default: 10:00 PM
+        self.default_start = time(8, 0)    # default: 8:00 AM
+        self.default_end = time(22, 0)     # default: 10:00 PM
         self.time_slot_duration = 30        # 30 min intervals
+        # current boundaries start as default
+        self.schedule_start = self.default_start
+        self.schedule_end = self.default_end
 
     def set_time_boundaries(self, start_time:str, end_time:str):
         """Set custom schedule boundaries"""
+        # if user left either input blank, use original defaults
+        if not start_time:
+            start_time = self.default_start.strftime('%H:%M')
+        if not end_time:
+            end_time = self.default_end.strftime('%H:%M')
+
+
         try:
-            self.schedule_start = datetime.strptime(start_time, '%H:%M').time()
-            self.schedule_end = datetime.strptime(end_time, '%H:%M').time()
+            new_start = datetime.strptime(start_time, '%H:%M').time()
+            new_end = datetime.strptime(end_time, '%H:%M').time()
         except ValueError:
-            print('Invalid time format. Use HH:MM (24-hour format)')
+            print("Invalid time format. Use HH:MM (24-hour format).")
             return False
+        
+        # start must be before end
+        if datetime.combine(datetime.today(), new_start) >= datetime.combine(datetime.today(), new_end):
+            print("Start time must be before end time.")
+            return False
+        
+        self.schedule_start = new_start
+        self.schedule_end = new_end
         return True
     
     def generate_time_slots(self):
@@ -46,6 +64,52 @@ class ManualScheduler:
             })
             curr_time = slot_end # make curr_time the slot_end to move forward
         return slots
+    
+    def assign_task(self, time_slots, slot_idx, task):
+        """Assign a task to a specific time slot"""
+        task_id, name, duration, *_ = task
+        
+        # compute new end datetime for task
+        slot_start_time = time_slots[slot_idx]['start']
+        slot_start_datetime = datetime.combine(datetime.today(), slot_start_time)
+        new_end_datetime = slot_start_datetime + timedelta(minutes=duration)
+        schedule_end_datetime = datetime.combine(datetime.today(), self.schedule_end)
+
+        # check if task fits in schedule
+        if new_end_datetime > schedule_end_datetime:
+            print(f"Task '{name}' ({duration} minutes) exceeds schedule end time!")
+            return time_slots
+        
+        new_slots = time_slots[:slot_idx]  # slots before the assigned slot
+
+        # add adjusted slot for task
+        new_slots.append({
+            'start': slot_start_time,
+            'end': new_end_datetime.time(),
+            'task_id': task_id,
+            'task_name': name
+        })
+
+        # notify if this overwrites existing future assignments
+        overwritten = [s for s in time_slots[slot_idx+1:] if s.get('task_id')]
+        if overwritten:
+            print("Warning: This assignment clears later tasks that overlap with the new timing.")
+
+        # generate remaining slots after task assignment
+        curr = new_end_datetime
+        while curr < schedule_end_datetime:
+            slot_end = curr + timedelta(minutes=self.time_slot_duration)
+            if slot_end > schedule_end_datetime:
+                break
+            new_slots.append({
+                'start': curr.time(),
+                'end': slot_end.time(),
+                'task_id': None,
+                'task_name': None
+            })
+            curr = slot_end
+
+        return new_slots
     
     def display_schedule_grid(self, available_tasks):
         """Display schedule grid with current assignments"""
@@ -72,7 +136,7 @@ class ManualScheduler:
                 with get_connection() as conn:
                     # create schedule record
                     cur = conn.execute(
-                        "INSERT INTO schedules (user_id, name, schedule_type, created at) VALUES (?, ?, ?, datetime('now'))",
+                        "INSERT INTO schedules (user_id, name, schedule_type, created_at) VALUES (?, ?, ?, datetime('now'))",
                         (self.user_id, schedule_name, 'manual')
                     )
                     schedule_id = cur.lastrowid
@@ -183,19 +247,10 @@ def run_manual_scheduler(user_id:int):
                 print("Invalid task ID.")
                 continue
             
-            # check if task duration fits in time slot
-            slot_duration = (datetime.combine(datetime.today(), time_slots[slot_idx]['end']) - 
-                             datetime.combine(datetime.today(), time_slots[slot_idx]['start'])).seconds // 60
-            
-            if duration > slot_duration:
-                print(f"Task '{name}' ({duration} minutes) doesn't fit in {slot_duration} min slot!")
-                continue
-
-            task_id, name, duration, *_ = task
-            time_slots[slot_idx]['task_id'] = task_id
-            time_slots[slot_idx]['task_name'] = name
-
-            print(f"Assigned '{name}' to {time_slots[slot_idx]['start'].strftime('%H:%M')} - {time_slots[slot_idx]['end'].strftime('%H:%M')}")
+            # assign + rebuild slots based on task duration
+            time_slots = scheduler.assign_task(time_slots, slot_idx, task)
+            assigned = time_slots[slot_idx]
+            print(f"Assigned '{assigned['task_name']}' to slot {assigned['start'].strftime('%H:%M')} - {assigned['end'].strftime('%H:%M')}")
 
         elif choice == '4':
             """Clear a slot on the schedule"""
