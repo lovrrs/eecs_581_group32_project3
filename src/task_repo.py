@@ -5,6 +5,7 @@
 
 from typing import List, Tuple
 from src.db import get_connection
+from datetime import datetime, time, timedelta
 
 class TaskRepo:
     """Data access class for the 'tasks' table (US-02, US-03, US-04)."""
@@ -72,3 +73,57 @@ class TaskRepo:
                 (new_value, task_id, self.user_id)
             )
             return new_value
+
+    def set_task_type(self, task_id:int, task_type:str, fixed_time:str=None):
+        """Set the task_type field for a task."""
+        with get_connection() as conn:
+                if task_type == 'fixed' and fixed_time:
+                    # validate fixed_time format HH:MM
+                    try:
+                        # convert HH:MM AM/PM to 24-hour HH:MM
+                        time_obj = datetime.strptime(fixed_time, "%I:%M %p").time()
+                        conn.execute(
+                            "UPDATE tasks SET task_type=?, fixed_time=? WHERE id=? AND user_id=?",
+                            (task_type, time_obj.strftime("%H:%M"), task_id, self.user_id)
+                        )
+                    except ValueError:
+                        raise ValueError("Invalid time format. Use HH:MM AM/PM.")
+                else:
+                    # flexible task - clear fixed_time
+                    conn.execute(
+                        "UPDATE tasks SET task_type=?, fixed_time=NULL WHERE id=? AND user_id=?",
+                        (task_type, task_id, self.user_id)
+                )
+                conn.commit()
+    def get_fixed_tasks(self):
+        """Get all fixed tasks for the user"""
+        with get_connection() as conn:
+            cur = conn.execute(
+                "SELECT id, name, duration_minutes, fixed_time FROM tasks WHERE user_id=? AND task_type='fixed' AND selected=1 ORDER BY fixed_time",
+                (self.user_id,)
+            )
+            return cur.fetchall()
+        
+    def detect_fixed_task_conflicts(self):
+        """Detect time conflicts between fixed tasks"""
+        fixed_tasks = self.get_fixed_tasks()
+        conflicts = []
+
+        # Check each pair of fixed tasks for overlap
+        for i in range(len(fixed_tasks)):
+            for j in range(i + 1, len(fixed_tasks)):
+                task1_id, task1_name, task1_duration, task1_time = fixed_tasks[i]
+                task2_id, task2_name, task2_duration, task2_time = fixed_tasks[j]
+
+                # convert times to datetime for comparison
+                time1 = datetime.strptime(task1_time, "%H:%M")
+                time2 = datetime.strptime(task2_time, "%H:%M")
+                end_time1 = time1 + timedelta(minutes=task1_duration)
+
+                # Check for overlap
+                if time2 < end_time1:
+                    conflicts.append({
+                        'task1': (task1_id, task1_name, task1_time, task1_duration),
+                        'task2': (task2_id, task2_name, task2_time, task2_duration)
+                    })
+        return conflicts

@@ -39,3 +39,15 @@ CREATE TABLE IF NOT EXISTS schedule_items (
     FOREIGN KEY (schedule_id) REFERENCES schedules(id),
     FOREIGN KEY (task_id) REFERENCES tasks(id)
 );
+
+-- add task type and fixed time to tasks table
+ALTER TABLE tasks ADD COLUMN task_type TEXT CHECK(task_type IN ('flexible', 'fixed')) DEFAULT 'flexible';
+ALTER TABLE tasks ADD COLUMN fixed_time TIME;
+
+-- constraint to ensure fixed_time is set for fixed tasks
+CREATE TRIGGER validate_fixed_time
+BEFORE UPDATE ON tasks FOR EACH ROW
+WHEN NEW.task_type = 'fixed' AND NEW.fixed_time IS NULL
+BEGIN
+    SELECT RAISE(ABORT, 'Fixed tasks must have a fixed_time');
+END;
