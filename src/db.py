@@ -22,8 +22,16 @@ def run_migrations():
     if not migration.exists():
         raise FileNotFoundError("Migration file not found at db/migrate_001_init.sql")
     with get_connection() as conn:
-        sql = migration.read_text(encoding="utf-8")
-        conn.executescript(sql)
+        # Check if tasks table exists
+        cur = conn.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='tasks'")
+        if cur.fetchone():
+            # Table already exists — skip migration
+            pass
+        else:
+            # Run migration file to create tables
+            sql = migration.read_text(encoding="utf-8")
+            conn.executescript(sql)
+ 
         # Ensure default user exists for Sprint 1 simplicity
         cur = conn.execute("SELECT id FROM users WHERE username=?", ("default",))
         if not cur.fetchone():
