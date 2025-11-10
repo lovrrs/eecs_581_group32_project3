@@ -67,9 +67,9 @@ def main():
             if not rows:
                 print("(no tasks yet)")
             for t in rows:
-                task_id, name, duration, selected = t
+                task_id, name, duration, selected, task_type, fixed_time = t
                 status = "✓" if selected else "✗"
-                print(f"{task_id}. {name} ({duration} minutes) [{status}]")
+                print(f"{task_id}. {name} | {duration} minutes | type:{task_type} | fixed_time:{fixed_time} | [{status}]")
         # select a task
         elif cmd == "4":
             tid_str = input("Task ID: ").strip()
