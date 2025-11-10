@@ -32,7 +32,8 @@ def main():
           "6. Export task info\n",
           "7. Manual Scheduler\n",
           "8. Automatic Scheduler\n",
-          "9. Quit")
+          "9. Break Settings\n"
+          "10. Quit")
         try:
             cmd = input("> ").strip().lower()
         except (EOFError, KeyboardInterrupt):
@@ -159,9 +160,24 @@ def main():
             schedule = scheduler.build_schedule()
             if schedule:
                 scheduler.display_schedule(schedule)
-            
+                
+        # break settings
+        elif cmd == '9':
+            if  input("Enable automatic breaks (Y/N):  ").strip().lower() == 'y':
+                #duration_str = input("Duration (min, integer > 0): ").strip()
+                try:
+                    #duration = int(duration_str)
+                    break_id = 1
+                    new_val = repo.toggle_select(break_id)
+                except Exception as e:
+                    print("Error:", e)
+            else:
+                print('Invalid choice')
+
+
+
         # exit
-        elif cmd == "9":
+        elif cmd == "10":
             print("Goodbye!")
             break
         else:

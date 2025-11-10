@@ -187,7 +187,8 @@ def run_manual_scheduler(user_id:int):
         print("4. Clear a time slot")
         print("5. Save Schedule")
         print("6. Change schedule time boundaries")
-        print("7. Exit")
+        print("7. Insert Breaks")
+        print("8. Quit")
 
         choice = input("> ").strip().lower()
 
@@ -311,8 +312,27 @@ def run_manual_scheduler(user_id:int):
                 print("Updated schedule boundaries!")
             else:
                 print("Failed to update time boundaries. Please use HH:MM format.")
-
         elif choice == '7':
+            """Insert Breaks"""
+
+            for i in range(len(time_slots)-2):
+                if (time_slots[i]['task_id'] !=1 and time_slots[i+1]['task_id']!=1):
+                        if (time_slots[i]['task_id'] and time_slots[i+1]['task_id']):
+                            if (time_slots[i+2]['task_id'] == None):
+                                
+                                task_id = int(time_slots[i+1]['task_id'])
+                                task = next((t for t in available_tasks if t[0] == task_id), None)
+                                time_slots[i+1]['task_id'] = None
+                                time_slots[i+1]['task_name'] = None
+                                break_task = next((t for t in available_tasks if t[0] == 1), None)
+                                time_slots=scheduler.assign_task(time_slots,i+1,break_task)
+                                time_slots=scheduler.assign_task(time_slots,i+2,task)
+                                
+                                print("Inserted breaks")
+                        
+
+
+        elif choice == '8':
             """Exit manual scheduler"""
             print("Exiting manual scheduler...")
             break

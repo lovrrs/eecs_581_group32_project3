@@ -33,7 +33,7 @@ def run_migrations():
         cur = conn.execute("SELECT COUNT(*) FROM tasks WHERE user_id = (SELECT id FROM users WHERE username='default')")
         if cur.fetchone()[0] == 0:
             default_tasks = [
-                ('Breakfast',45), ('Lunch',45), ('Dinner',45), ('Exercise', 45), ('Laundry', 20),
+                ('Break',15), ('Breakfast',45), ('Lunch',45), ('Dinner',45), ('Exercise', 45), ('Laundry', 20),
                 ('Study', 60), ('Team Meeting', 60), ('Reading', 30), ('Email Management', 30),
                 ('Work', 90), ('Go on a Walk', 20), ('Nap', 20), ('Shower', 20), ('Clean', 90)
             ]
