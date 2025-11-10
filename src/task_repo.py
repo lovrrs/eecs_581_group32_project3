@@ -23,8 +23,8 @@ class TaskRepo:
             raise ValueError("Invalid name or duration.")
         with get_connection() as conn:
             cur = conn.execute(
-                "INSERT INTO tasks (user_id, name, duration_minutes) VALUES (?, ?, ?)",
-                (self.user_id, name.strip(), duration),
+                "INSERT INTO tasks (user_id, name, duration_minutes, selected, task_type, fixed_time) VALUES (?, ?, ?, ?, ?, NULL)",
+                (self.user_id, name.strip(), duration, 0, "flexible"),
             )
             return cur.lastrowid
         
@@ -48,11 +48,11 @@ class TaskRepo:
             )
             return True
 
-    def list_tasks(self) -> List[Tuple[int, str, int, int]]:
+    def list_tasks(self) -> List[Tuple[int, str, int, int, str, str]]:
         """Return all tasks for this user (US-03)."""
         with get_connection() as conn:
             cur = conn.execute(
-                "SELECT id, name, duration_minutes, selected FROM tasks WHERE user_id=? ORDER BY created_at",
+                "SELECT id, name, duration_minutes, selected, task_type, fixed_time FROM tasks WHERE user_id=? ORDER BY created_at",
                 (self.user_id,)
             )
             return cur.fetchall()
@@ -74,7 +74,7 @@ class TaskRepo:
             )
             return new_value
 
-    def set_task_type(self, task_id:int, task_type:str, fixed_time:str=None):
+    def set_task_type(self, task_id:int, task_type:str, fixed_time:str=""):
         """Set the task_type field for a task."""
         with get_connection() as conn:
                 if task_type == 'fixed' and fixed_time:
@@ -92,7 +92,7 @@ class TaskRepo:
                     # flexible task - clear fixed_time
                     conn.execute(
                         "UPDATE tasks SET task_type=?, fixed_time=NULL WHERE id=? AND user_id=?",
-                        (task_type, task_id, self.user_id)
+                        ("flexible", task_id, self.user_id)
                 )
                 conn.commit()
     def get_fixed_tasks(self):
