@@ -55,6 +55,7 @@ def main():
                 print("Error:", e)
         # delete a task
         elif cmd == "2":
+            repo.list_tasks() # list taks
             task_id_str = input("Task ID to delete: ").strip()
             try:
                 task_id = int(task_id_str)
@@ -76,6 +77,7 @@ def main():
                 print(f"{task_id}. {name} | {duration} minutes | type:{task_type} | fixed_time:{fixed_time} | [{status}]")
         # select a task
         elif cmd == "4":
+            repo.list_tasks() # list tasks
             tid_str = input("Task ID: ").strip()
             try:
                 tid = int(tid_str)
@@ -85,6 +87,7 @@ def main():
                 print("Error:", e)
         # set task type
         elif cmd == "5":
+            repo.list_tasks() # list tasks
             task_id_str = input("Enter task ID to modify: ").strip()
             try:
                 task_id = int(task_id_str)
