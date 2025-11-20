@@ -49,8 +49,34 @@ def main():
             duration_str = input("Duration (min, integer > 0): ").strip()
             try:
                 duration = int(duration_str)
-                repo.add_task(name, duration)
-                print("Task added.")
+
+                # show categories to assign
+                category_repo = CategoryRepo(user_id)
+                categories = category_repo.list_categories()
+                if categories:
+                    print("\nAvailable Categories:")
+                    category_repo.display_categories(categories)
+                    cat_id_str = input("Enter category ID to assign (or leave blank for none): ").strip()
+
+                    category_id = None # default
+                    if cat_id_str.isdigit() and int(cat_id_str) != 0:
+                        category_id = int(cat_id_str)
+                        # verify category exists
+                        if not any(cat[0] == category_id for cat in categories):
+                            print("Category ID does not exist.")
+                            category_id = None
+                else:
+                    category_id = None
+
+                # add task w/ category
+                task_id = repo.add_task(name, duration)
+                if category_id:
+                    repo.set_task_category(task_id, category_id)
+                    # create readable name
+                    category_name = next((cat[1] for cat in categories if cat[0] == category_id), "Unknown")
+                    print(f"Task added under category '{category_name}'.")
+                else:
+                    print("Task added.")
             except Exception as e:
                 print("Error:", e)
         # delete a task

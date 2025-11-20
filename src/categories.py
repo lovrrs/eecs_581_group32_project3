@@ -5,6 +5,7 @@
 
 from src.db import get_connection
 from typing import List, Tuple
+from src.task_repo import TaskRepo
 import sqlite3
 
 class CategoryRepo:
@@ -32,7 +33,7 @@ class CategoryRepo:
         with get_connection() as conn:
             cursor = conn.execute(
                 """SELECT id, name, (SELECT COUNT(*) FROM tasks WHERE category_id = categories.id) as task_count
-                  FROM categories WHERE user_id = ? ORDER BY name""",
+                  FROM categories WHERE user_id = ?""",
                 (self.user_id,)
             )
             return cursor.fetchall()
@@ -59,10 +60,24 @@ class CategoryRepo:
             print("No categories found.")
             return
 
+        # sort categories by id
+        categories.sort(key=lambda x: x[0])
+
         print("\n" + "="*50)
         print("CATEGORIES")
         print("="*50)
         for cat_id, name, task_count in categories:
-            print(f"{cat_id:2d}. {name} ({task_count} tasks)")
+            print(f"{cat_id:2d}. {name} ({task_count} tasks):")
+            print("-"*50)
+            tasks = TaskRepo(self.user_id).get_tasks_by_category(cat_id)
+
+            if not tasks:
+                print("    No tasks in this category.")
+            else:
+                for task in tasks:
+                    task_id, task_name, duration, selected, task_type, fixed_time = task
+                    status = "✓" if selected else "✗"
+                    print(f"    - {task_name} ({duration} mins) [{task_type}]")
+            print()
         print("="*50)    
             

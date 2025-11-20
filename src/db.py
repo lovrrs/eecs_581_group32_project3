@@ -22,21 +22,32 @@ def run_migrations():
     if not migration.exists():
         raise FileNotFoundError("Migration file not found at db/migrate_001_init.sql")
     with get_connection() as conn:
-        # Check if tasks table exists
+        # Check if all tables exist
         cur = conn.execute("SELECT name FROM sqlite_master WHERE type='table' AND name IN ('users', 'tasks', 'categories')")
+        existing_tables = {row[0] for row in cur.fetchall()}
+        required_tables = {'users', 'tasks', 'categories'}
 
-        if cur.fetchone():
-            # Table already exists — skip migration
-            pass
-        else:
-            # Run migration file to create tables
+        # run migration if any required table is missing
+        if existing_tables != required_tables:
             sql = migration.read_text(encoding="utf-8")
             conn.executescript(sql)
+        else:
+            pass # all tables exist, skip migration
  
         # Ensure default user exists for Sprint 1 simplicity
         cur = conn.execute("SELECT id FROM users WHERE username=?", ("default",))
         if not cur.fetchone():
             conn.execute("INSERT INTO users (username) VALUES (?)", ("default",))
+        
+        # default categories
+        cur = conn.execute("SELECT COUNT(*) FROM categories WHERE user_id = (SELECT id FROM users WHERE username='default')")
+        if cur.fetchone()[0] == 0:
+            default_categories = ['Work', 'Personal', 'Health', 'Chores', 'Meals', 'Leisure']
+            for category in default_categories:
+                conn.execute(
+                    "INSERT OR IGNORE INTO categories (user_id, name) VALUES ((SELECT id FROM users WHERE username='default'), ?)",
+                    (category,)
+                )
 
         # default tasks
         cur = conn.execute("SELECT COUNT(*) FROM tasks WHERE user_id = (SELECT id FROM users WHERE username='default')")

@@ -15,7 +15,7 @@ class TaskRepo:
 
     # BLOCK: validate_and_insert (US-02)
     # Purpose: Validate name/duration, then insert task in one transaction.
-    def add_task(self, name:str, duration:int) -> int:
+    def add_task(self, name:str, duration:int, category_id:int=None) -> int:
         """Add a new task (US-02). Raises ValueError if invalid. Returns task id."""
         if not isinstance(duration, int):
             raise ValueError("Duration must be an integer.")
@@ -23,8 +23,8 @@ class TaskRepo:
             raise ValueError("Invalid name or duration.")
         with get_connection() as conn:
             cur = conn.execute(
-                "INSERT INTO tasks (user_id, name, duration_minutes, selected, task_type, fixed_time) VALUES (?, ?, ?, ?, ?, NULL)",
-                (self.user_id, name.strip(), duration, 0, "flexible"),
+                "INSERT INTO tasks (user_id, name, duration_minutes, selected, task_type, fixed_time, category_id) VALUES (?, ?, ?, ?, ?, NULL, ?)",
+                (self.user_id, name.strip(), duration, 0, "flexible", category_id),
             )
             return cur.lastrowid
         
@@ -147,3 +147,36 @@ class TaskRepo:
             )
             result = cur.fetchone()
             return result[0] if result else None
+        
+    def set_task_category(self, task_id:int, category_id:int):
+        """Set the category_id for a task."""
+        with get_connection() as conn:
+            conn.execute(
+                "SELECT id FROM categories WHERE id=? AND user_id=?",
+                (category_id, self.user_id)
+            )
+            if not conn.fetchone():
+                raise ValueError("Category not found.")
+            conn.execute(
+                "UPDATE tasks SET category_id=? WHERE id=? AND user_id=?",
+                (category_id, task_id, self.user_id)
+            )
+            conn.commit()
+
+    def remove_task_category(self, task_id:int):
+        """Remove the category association from a task."""
+        with get_connection() as conn:
+            conn.execute(
+                "UPDATE tasks SET category_id=NULL WHERE id=? AND user_id=?",
+                (task_id, self.user_id)
+            )
+            conn.commit()
+
+    def get_tasks_by_category(self, category_id:int):
+        """Get all tasks for a specific category."""
+        with get_connection() as conn:
+            cur = conn.execute(
+                "SELECT id, name, duration_minutes, selected, task_type, fixed_time FROM tasks WHERE user_id=? AND category_id=? ORDER BY name",
+                (self.user_id, category_id)
+            )
+            return cur.fetchall()
