@@ -8,6 +8,7 @@ from src.task_repo import TaskRepo
 from src.manual_scheduler import run_manual_scheduler
 from src.automatic_scheduler import AutomaticScheduler
 from datetime import datetime, time, timedelta
+from src.categories import CategoryRepo
 
 def _get_default_user_id() -> int:
     with get_connection() as conn:
@@ -32,8 +33,10 @@ def main():
           "6. Export task info\n",
           "7. Manual Scheduler\n",
           "8. Automatic Scheduler\n",
-          "9. Break Settings\n"
-          "10. Quit")
+          "9. Break Settings\n",
+          "10. Manage Categories\n",
+          "11. Vacation Settings\n", # add budget, location, date
+          "12. Quit")
         try:
             cmd = input("> ").strip().lower()
         except (EOFError, KeyboardInterrupt):
@@ -174,10 +177,53 @@ def main():
             else:
                 print('Invalid choice')
 
+        # categories
+        elif cmd == '10':
+            category_repo = CategoryRepo(user_id)
 
+            while True:
+                print("\n CATEGORY MANAGEMENT")
+                print("1. List Categories")
+                print("2. Add Category")
+                print("3. Delete Category")
+                print("4. Return to Main Menu")
+                cat_choice = input("> ").strip()
+                
+                # list
+                if cat_choice == "1":
+                    categories = category_repo.list_categories()
+                    category_repo.display_categories(categories)
+
+                # add
+                elif cat_choice == "2":
+                    name = input("Enter category name: ").strip()
+                    try:
+                        category_id = category_repo.create_category(name)
+                        print(f'Category {name} created successfully!')
+                    except Exception as e:
+                        print(f'Error: {e}')
+
+                # delete
+                elif cat_choice == "3":
+                    categories = category_repo.list_categories()
+                    category_repo.display_categories(categories)
+                    cat_id = input("Enter category ID to delete: ").strip()
+                    if cat_id.isdigit():
+                        confirm = input("This will unlink the category from all tasks. Continue? (y/n): ").strip().lower()
+                        if confirm == 'y':
+                            category_repo.delete_category(int(cat_id))
+                            print("Category deleted successfully!")
+                
+                # exit
+                elif cat_choice == "4":
+                    break
+                else:
+                    print("Invalid choice!")
+
+                    
 
         # exit
-        elif cmd == "10":
+        elif cmd == "12":
             print("Goodbye!")
             break
         else:

@@ -23,7 +23,8 @@ def run_migrations():
         raise FileNotFoundError("Migration file not found at db/migrate_001_init.sql")
     with get_connection() as conn:
         # Check if tasks table exists
-        cur = conn.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='tasks'")
+        cur = conn.execute("SELECT name FROM sqlite_master WHERE type='table' AND name IN ('users', 'tasks', 'categories')")
+
         if cur.fetchone():
             # Table already exists — skip migration
             pass
@@ -40,13 +41,19 @@ def run_migrations():
         # default tasks
         cur = conn.execute("SELECT COUNT(*) FROM tasks WHERE user_id = (SELECT id FROM users WHERE username='default')")
         if cur.fetchone()[0] == 0:
+            # get default category IDs
+            cur = conn.execute("SELECT id, name FROM categories WHERE user_id = (SELECT id FROM users WHERE username='default')")
+            category_map = {name: id for id, name in cur.fetchall()}
+
             default_tasks = [
-                ('Break',15), ('Breakfast',45), ('Lunch',45), ('Dinner',45), ('Exercise', 45), ('Laundry', 20),
-                ('Study', 60), ('Team Meeting', 60), ('Reading', 30), ('Email Management', 30),
-                ('Work', 90), ('Go on a Walk', 20), ('Nap', 20), ('Shower', 20), ('Clean', 90)
+                ('Break',15, 'Personal'), ('Breakfast',45, 'Meals'), ('Lunch',45, 'Meals'), ('Dinner',45, 'Meals'), ('Exercise', 45, 'Health'), ('Laundry', 20, 'Chores'),
+                ('Study', 60, 'Personal'), ('Team Meeting', 60, 'Work'), ('Reading', 30, 'Leisure'), ('Email Management', 30, 'Work'),
+                ('Work', 90, 'Work'), ('Go on a Walk', 20, 'Health'), ('Nap', 20, 'Personal'), ('Shower', 20, 'Personal'), ('Clean', 90, 'Chores')
             ]
-            for name, duration in default_tasks:
+            for name, duration, category_name in default_tasks:
+                category_id = category_map.get(category_name)
                 conn.execute(
-                    "INSERT INTO tasks (user_id, name, duration_minutes, selected) VALUES ((SELECT id FROM users WHERE username='default'), ?, ?, 0)",
-                    (name, duration)
+                    "INSERT INTO tasks (user_id, name, duration_minutes, selected, category_id) VALUES ((SELECT id FROM users WHERE username='default'), ?, ?, 0, ?)",
+                    (name, duration, category_id)
                 )
+        conn.commit()

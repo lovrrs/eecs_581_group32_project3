@@ -40,6 +40,16 @@ CREATE TABLE IF NOT EXISTS schedule_items (
     FOREIGN KEY (task_id) REFERENCES tasks(id)
 );
 
+-- create categories table
+CREATE TABLE IF NOT EXISTS categories (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id INTEGER NOT NULL,
+    name TEXT NOT NULL,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES users(id),
+    UNIQUE(user_id, name)
+);
+
 -- add task type and fixed time to tasks table
 ALTER TABLE tasks ADD COLUMN task_type TEXT CHECK(task_type IN ('flexible', 'fixed')) DEFAULT 'flexible';
 ALTER TABLE tasks ADD COLUMN fixed_time TIME;
@@ -51,3 +61,18 @@ WHEN NEW.task_type = 'fixed' AND NEW.fixed_time IS NULL
 BEGIN
     SELECT RAISE(ABORT, 'Fixed tasks must have a fixed_time');
 END;
+
+
+
+-- add category_id to tasks table
+ALTER TABLE tasks ADD COLUMN category_id INTEGER;
+ALTER TABLE tasks ADD FOREIGN KEY (category_id) REFERENCES categories(id);
+
+-- default categories
+INSERT INTO categories (user_id, name) VALUES
+((SELECT id FROM users WHERE username = 'default'), 'Work'),
+((SELECT id FROM users WHERE username = 'default'), 'Personal'),
+((SELECT id FROM users WHERE username = 'default'), 'Health'),
+((SELECT id FROM users WHERE username = 'default'), 'Chores'),
+((SELECT id FROM users WHERE username = 'default'), 'Meals'),
+((SELECT id FROM users WHERE username = 'default'), 'Leisure');
