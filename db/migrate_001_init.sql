@@ -53,6 +53,17 @@ CREATE TABLE IF NOT EXISTS categories (
     UNIQUE(user_id, name)
 );
 
+-- locations table
+CREATE TABLE IF NOT EXISTS locations (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id INTEGER NOT NULL,
+    location TEXT NOT NULL,
+    start_date DATE NOT NULL,
+    end_date DATE NOT NULL,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES users(id)
+);
+
 -- constraint to ensure fixed_time is set for fixed tasks
 -- CREATE TRIGGER validate_fixed_time
 -- BEFORE UPDATE ON tasks FOR EACH ROW

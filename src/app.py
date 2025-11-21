@@ -9,6 +9,9 @@ from src.manual_scheduler import run_manual_scheduler
 from src.automatic_scheduler import AutomaticScheduler
 from datetime import datetime, time, timedelta
 from src.categories import CategoryRepo
+from src.location_input import LocationRepo, display_location
+from src.places_api import PlacesAPI, display_places, suggest_categories_from_places
+
 
 def _get_default_user_id() -> int:
     with get_connection() as conn:
