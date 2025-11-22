@@ -7,6 +7,7 @@ from datetime import datetime, time, timedelta
 from src.db import get_connection
 from src.task_repo import TaskRepo
 from src.time_periods import determine_period, times_for_slot, next_slot, is_time_in_slot
+from src.travel_time import get_travel_time  # NEW: for travel-time calculation
 
 class AutomaticScheduler:
     def __init__(self, user_id: int):
@@ -167,7 +168,7 @@ class AutomaticScheduler:
         print("="*70)
 
         current_period = None
-        for slot in schedule:
+        for idx, slot in enumerate(schedule):
             if slot['period'] != current_period:
                 current_period = slot['period']
                 print(f"\n{current_period.upper()}:")
@@ -176,3 +177,20 @@ class AutomaticScheduler:
             start_time = slot['start'].strftime("%I:%M %p")
             end_time = slot['end'].strftime("%I:%M %p")
             print(f"{start_time:>8} - {end_time:<8}: {slot['task_name']}")
+
+            # NEW: show travel time between this task and the next one
+            if idx < len(schedule) - 1:
+                current_task_id = slot['task_id']
+                next_task_id = schedule[idx + 1]['task_id']
+
+                # Only show travel if we’re actually going to a different task
+                if current_task_id != next_task_id:
+                    # These require TaskRepo.get_task_location and travel_time.get_travel_time
+                    try:
+                        curr_loc = self.repo.get_task_location(current_task_id)
+                        next_loc = self.repo.get_task_location(next_task_id)
+                        tt = get_travel_time(curr_loc, next_loc)
+                        print(f"           -> Travel from {curr_loc or 'Unknown'} to {next_loc or 'Unknown'}: {tt} min")
+                    except AttributeError:
+                        # If get_task_location isn't implemented yet, fail quietly
+                        pass
