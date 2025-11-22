@@ -12,59 +12,109 @@ from pathlib import Path
 
 DB_PATH = Path("scheduler.db")
 
+
 def get_connection():
     """Return a SQLite3 connection object."""
     return sqlite3.connect(DB_PATH)
+
 
 def run_migrations():
     """Run initial SQL migration to create tables if needed."""
     migration = Path("db/migrate_001_init.sql")
     if not migration.exists():
-        raise FileNotFoundError("Migration file not found at db/migrate_001_init.sql")
+        raise FileNotFoundError(
+            "Migration file not found at db/migrate_001_init.sql"
+        )
     with get_connection() as conn:
         # Check if all tables exist
-        cur = conn.execute("SELECT name FROM sqlite_master WHERE type='table' AND name IN ('users', 'tasks', 'categories')")
+        cur = conn.execute(
+            "SELECT name FROM sqlite_master WHERE type='table' "
+            "AND name IN ('users', 'tasks', 'categories')"
+        )
         existing_tables = {row[0] for row in cur.fetchall()}
-        required_tables = {'users', 'tasks', 'categories'}
+        required_tables = {"users", "tasks", "categories"}
 
         # run migration if any required table is missing
         if existing_tables != required_tables:
             sql = migration.read_text(encoding="utf-8")
             conn.executescript(sql)
         else:
-            pass # all tables exist, skip migration
- 
+            pass  # all tables exist, skip migration
+
+        #  Ensure 'location' column exists on tasks table for travel-time logic
+        cur = conn.execute("PRAGMA table_info(tasks)")
+        columns = [row[1] for row in cur.fetchall()]
+        if "location" not in columns:
+            conn.execute("ALTER TABLE tasks ADD COLUMN location TEXT")
+
         # Ensure default user exists for Sprint 1 simplicity
-        cur = conn.execute("SELECT id FROM users WHERE username=?", ("default",))
+        cur = conn.execute(
+            "SELECT id FROM users WHERE username=?", ("default",)
+        )
         if not cur.fetchone():
-            conn.execute("INSERT INTO users (username) VALUES (?)", ("default",))
-        
+            conn.execute(
+                "INSERT INTO users (username) VALUES (?)", ("default",)
+            )
+
         # default categories
-        cur = conn.execute("SELECT COUNT(*) FROM categories WHERE user_id = (SELECT id FROM users WHERE username='default')")
+        cur = conn.execute(
+            "SELECT COUNT(*) FROM categories WHERE user_id = "
+            "(SELECT id FROM users WHERE username='default')"
+        )
         if cur.fetchone()[0] == 0:
-            default_categories = ['Work', 'Personal', 'Health', 'Chores', 'Meals', 'Leisure']
+            default_categories = [
+                "Work",
+                "Personal",
+                "Health",
+                "Chores",
+                "Meals",
+                "Leisure",
+            ]
             for category in default_categories:
                 conn.execute(
-                    "INSERT OR IGNORE INTO categories (user_id, name) VALUES ((SELECT id FROM users WHERE username='default'), ?)",
-                    (category,)
+                    "INSERT OR IGNORE INTO categories (user_id, name) "
+                    "VALUES ((SELECT id FROM users WHERE username='default'), ?)",
+                    (category,),
                 )
 
         # default tasks
-        cur = conn.execute("SELECT COUNT(*) FROM tasks WHERE user_id = (SELECT id FROM users WHERE username='default')")
+        cur = conn.execute(
+            "SELECT COUNT(*) FROM tasks WHERE user_id = "
+            "(SELECT id FROM users WHERE username='default')"
+        )
         if cur.fetchone()[0] == 0:
             # get default category IDs
-            cur = conn.execute("SELECT id, name FROM categories WHERE user_id = (SELECT id FROM users WHERE username='default')")
+            cur = conn.execute(
+                "SELECT id, name FROM categories WHERE user_id = "
+                "(SELECT id FROM users WHERE username='default')"
+            )
             category_map = {name: id for id, name in cur.fetchall()}
 
             default_tasks = [
-                ('Break',15, 'Personal'), ('Breakfast',45, 'Meals'), ('Lunch',45, 'Meals'), ('Dinner',45, 'Meals'), ('Exercise', 45, 'Health'), ('Laundry', 20, 'Chores'),
-                ('Study', 60, 'Personal'), ('Team Meeting', 60, 'Work'), ('Reading', 30, 'Leisure'), ('Email Management', 30, 'Work'),
-                ('Work', 90, 'Work'), ('Go on a Walk', 20, 'Health'), ('Nap', 20, 'Personal'), ('Shower', 20, 'Personal'), ('Clean', 90, 'Chores')
+                ("Break", 15, "Personal"),
+                ("Breakfast", 45, "Meals"),
+                ("Lunch", 45, "Meals"),
+                ("Dinner", 45, "Meals"),
+                ("Exercise", 45, "Health"),
+                ("Laundry", 20, "Chores"),
+                ("Study", 60, "Personal"),
+                ("Team Meeting", 60, "Work"),
+                ("Reading", 30, "Leisure"),
+                ("Email Management", 30, "Work"),
+                ("Work", 90, "Work"),
+                ("Go on a Walk", 20, "Health"),
+                ("Nap", 20, "Personal"),
+                ("Shower", 20, "Personal"),
+                ("Clean", 90, "Chores"),
             ]
             for name, duration, category_name in default_tasks:
                 category_id = category_map.get(category_name)
                 conn.execute(
-                    "INSERT INTO tasks (user_id, name, duration_minutes, selected, category_id) VALUES ((SELECT id FROM users WHERE username='default'), ?, ?, 0, ?)",
-                    (name, duration, category_id)
+                    "INSERT INTO tasks (user_id, name, duration_minutes, "
+                    "selected, category_id) "
+                    "VALUES ((SELECT id FROM users WHERE username='default'), "
+                    "?, ?, 0, ?)",
+                    (name, duration, category_id),
                 )
+
         conn.commit()
