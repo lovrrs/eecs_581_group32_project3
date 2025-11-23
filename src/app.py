@@ -11,6 +11,7 @@ from datetime import datetime, time, timedelta
 from src.categories import CategoryRepo
 from src.location_input import LocationRepo, display_location
 from src.places_api import PlacesAPI, display_places, suggest_categories_from_places
+from src.auto_suggest import generate_suggestions, insert_suggestions, display_suggestions
 
 
 def _get_default_user_id() -> int:
@@ -253,6 +254,62 @@ def main():
             schedule = scheduler.build_schedule()
             if schedule:
                 scheduler.display_schedule(schedule)
+                
+                # Offer to generate suggestions for open time slots
+                print("\nWould you like to generate suggestions for open time slots?")
+                if input("Enter 'y' to generate suggestions: ").strip().lower() == "y":
+                    location = input("Enter location (e.g., Seattle, WA): ").strip()
+                    
+                    if location:
+                        print("\nGenerating suggestions...")
+                        suggestions = generate_suggestions(
+                            schedule=schedule,
+                            location=location,
+                            schedule_start=scheduler.schedule_start,
+                            schedule_end=scheduler.schedule_end,
+                            time_slot_duration=scheduler.time_slot_duration
+                        )
+                        
+                        if suggestions:
+                            display_suggestions(suggestions)
+                            
+                            # Review and approve suggestions
+                            print("Review suggestions above. Enter the numbers of suggestions to approve")
+                            print("(e.g., '1 3 5' to approve suggestions 1, 3, and 5, or 'all' for all)")
+                            approval_input = input("> ").strip().lower()
+                            
+                            approved_indices = []
+                            if approval_input == "all":
+                                approved_indices = list(range(len(suggestions)))
+                            else:
+                                try:
+                                    approved_indices = [
+                                        int(x.strip()) - 1  # Convert to 0-based index
+                                        for x in approval_input.split()
+                                        if x.strip().isdigit()
+                                    ]
+                                    # Filter valid indices
+                                    approved_indices = [
+                                        idx for idx in approved_indices
+                                        if 0 <= idx < len(suggestions)
+                                    ]
+                                except ValueError:
+                                    print("Invalid input. No suggestions approved.")
+                            
+                            if approved_indices:
+                                task_ids = insert_suggestions(user_id, suggestions, approved_indices)
+                                if task_ids:
+                                    print(f"\n✓ {len(task_ids)} suggestion(s) added to your tasks!")
+                                    print("These tasks are marked as '[Suggested]' and are automatically selected.")
+                                    print("\nYou can rebuild your schedule to include these new tasks.")
+                                else:
+                                    print("\nNo suggestions were added.")
+                            else:
+                                print("\nNo suggestions approved.")
+                        else:
+                            print("No suggestions could be generated.")
+                    else:
+                        print("Location is required to generate suggestions.")
 
         # ================= SETTINGS MENU =================
         elif cmd == "4":
