@@ -14,6 +14,8 @@ class ManualScheduler:
         self.default_start = time(8, 0)    # default: 8:00 AM
         self.default_end = time(22, 0)     # default: 10:00 PM
         self.time_slot_duration = 30        # 30 min intervals
+        # Added to create a way to export later if wanted.
+        self.schedule_list = []
         # current boundaries start as default
         self.schedule_start = self.default_start
         self.schedule_end = self.default_end
@@ -299,6 +301,15 @@ def run_manual_scheduler(user_id:int):
                 name = "Manual Schedule"
             if scheduler.save_schedule(time_slots, name):
                 print("Schedule saved!")
+                # Creates the list of writes for a possible export.
+                schedule_list = []
+                print("\nCurrent Schedule:")
+                for i, slot in enumerate(time_slots, start=1):
+                    start = slot['start'].strftime("%H:%M")
+                    end = slot['end'].strftime("%H:%M")
+                    task_name = slot['task_name'] or "-"
+                    schedule_list.append(f"{i:2d}. {start} - {end}: {task_name}")
+                    scheduler.schedule_list = schedule_list
             else:
                 print("Failed to save schedule.")
 
@@ -339,6 +350,5 @@ def run_manual_scheduler(user_id:int):
 
         else:
             print("Invalid option. Try again.")
-
-        
-
+    # Function returns scheduler that way it can be used to export if wanted.
+    return scheduler

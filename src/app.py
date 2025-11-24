@@ -6,12 +6,15 @@
 from src.db import run_migrations, get_connection
 from src.task_repo import TaskRepo
 from src.manual_scheduler import run_manual_scheduler
+from src.manual_scheduler import ManualScheduler
 from src.automatic_scheduler import AutomaticScheduler
 from datetime import datetime, time, timedelta
 from src.categories import CategoryRepo
 from src.location_input import LocationRepo, display_location
 from src.places_api import PlacesAPI, display_places, suggest_categories_from_places
 from src.auto_suggest import generate_suggestions, insert_suggestions, display_suggestions
+from src.export_data import export_tasks, export_auto_schedule, export_manual_schedule
+from src.weather_api import get_weather_sync
 
 
 def _get_default_user_id() -> int:
@@ -25,6 +28,11 @@ def main():
     run_migrations()
     user_id = _get_default_user_id()
     repo = TaskRepo(user_id=user_id)
+    # Tracks most recent schedule and retains last schedule for export.
+    most_recent = None
+    saved_schedule = None
+    saved_scheduler = None
+    saved_schedule_list = []
 
     while True:
         # print main menu after each option
@@ -34,7 +42,8 @@ def main():
         print("2. Manual Scheduler")
         print("3. Automatic Scheduler")
         print("4. Settings")
-        print("5. Quit")
+        print("5. Export Most Recent Schedule")
+        print("6. Quit")
         try:
             cmd = input("> ").strip().lower()
         except (EOFError, KeyboardInterrupt):
@@ -205,17 +214,7 @@ def main():
 
                 # 6. Export task info
                 elif sub == "6":
-                    rows = repo.list_tasks()
-                    with open("tasks_output.txt", "w", encoding="utf-8") as f:
-                        if not rows:
-                            f.write("(no tasks yet)\n")
-                        else:
-                            for t in rows:
-                                line = (
-                                    f"{t[0]}. {t[1]} - {t[2]} min - "
-                                    f"selected={bool(t[3])}\n"
-                                )
-                                f.write(line)
+                    export_tasks(repo)
 
                 # Back to main menu
                 elif sub == "7":
@@ -225,7 +224,10 @@ def main():
 
         # ================= MANUAL SCHEDULER =================
         elif cmd == "2":
-            run_manual_scheduler(user_id)
+            scheduler = run_manual_scheduler(user_id)
+            if scheduler:
+                saved_schedule_list = getattr(scheduler, "schedule_list", None)
+                most_recent = "manual"
 
         # ================= AUTOMATIC SCHEDULER =================
         elif cmd == "3":
@@ -262,6 +264,11 @@ def main():
             schedule = scheduler.build_schedule()
             if schedule:
                 scheduler.display_schedule(schedule)
+                
+                # Saves the schedule to be able to export if wanted later. 
+                saved_scheduler = scheduler
+                saved_schedule = schedule
+                most_recent = "auto"
                 
                 # Offer to generate suggestions for open time slots
                 print("\nWould you like to generate suggestions for open time slots?")
@@ -405,8 +412,18 @@ def main():
                 else:
                     print("Invalid choice.")
 
-        # ================= QUIT =================
+        # ================= EXPORT SCHEDULE =================
         elif cmd == "5":
+            # Checks the most recent type of schedule and calls that function.
+            if most_recent == None:
+                print("You must create a schedule first!")
+            elif most_recent == "manual":
+                export_manual_schedule(saved_schedule_list)
+            elif most_recent == "auto":
+                export_auto_schedule(saved_scheduler, saved_schedule)
+                
+        # ================= QUIT =================
+        elif cmd == "6":
             print("Goodbye!")
             break
 
