@@ -22,6 +22,7 @@ class TaskRepo:
         duration: int,
         category_id: int | None = None,
         location: str | None = None,
+        cost: float | None = None,
     ) -> int:
         """Add a new task (US-02). Raises ValueError if invalid. Returns task id."""
         if not isinstance(duration, int):
@@ -32,9 +33,9 @@ class TaskRepo:
             cur = conn.execute(
                 "INSERT INTO tasks "
                 "(user_id, name, duration_minutes, selected, "
-                "task_type, fixed_time, category_id, location) "
-                "VALUES (?, ?, ?, ?, ?, NULL, ?, ?)",
-                (self.user_id, name.strip(), duration, 0, "flexible", category_id, location),
+                "task_type, fixed_time, cost, category_id, location) "
+                "VALUES (?, ?, ?, ?, ?, NULL, ?, ?, ?)",
+                (self.user_id, name.strip(), duration, 0, "flexible", cost, category_id, location),
             )
             return cur.lastrowid
 
@@ -58,11 +59,11 @@ class TaskRepo:
             )
             return True
 
-    def list_tasks(self) -> List[Tuple[int, str, int, int, str, str]]:
+    def list_tasks(self) -> List[Tuple[int, str, int, int, str, str, float]]:
         """Return all tasks for this user (US-03)."""
         with get_connection() as conn:
             cur = conn.execute(
-                "SELECT id, name, duration_minutes, selected, task_type, fixed_time "
+                "SELECT id, name, duration_minutes, selected, task_type, fixed_time, cost "
                 "FROM tasks WHERE user_id=? ORDER BY created_at",
                 (self.user_id,),
             )

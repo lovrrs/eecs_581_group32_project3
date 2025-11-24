@@ -15,6 +15,7 @@ from src.places_api import PlacesAPI, display_places, suggest_categories_from_pl
 from src.auto_suggest import generate_suggestions, insert_suggestions, display_suggestions
 from src.export_data import export_tasks, export_auto_schedule, export_manual_schedule
 from src.weather_api import get_weather_sync
+import re
 
 
 def _get_default_user_id() -> int:
@@ -78,8 +79,15 @@ def main():
                         .strip()
                         or None
                     )
-
+                    
                     try:
+                        cost_unstripped = (
+                        input(
+                            "Cost of activity (e.g. 15.00) (optional):"
+                        )
+                        or None
+                        )
+                        cost = re.sub('[^0-9,.]', '', cost_unstripped)
                         duration = int(duration_str)
 
                         # show categories to assign
@@ -103,7 +111,7 @@ def main():
 
                         # add task with category (if any) and location
                         task_id = repo.add_task(
-                            name, duration, category_id=category_id, location=location
+                            name, duration, category_id=category_id, location=location, cost=cost
                         )
 
                         if category_id:
@@ -137,11 +145,11 @@ def main():
                     if not rows:
                         print("(no tasks yet)")
                     for t in rows:
-                        task_id, name, duration, selected, task_type, fixed_time = t
+                        task_id, name, duration, selected, task_type, fixed_time, cost = t
                         status = "✓" if selected else "✗"
                         print(
                             f"{task_id}. {name} | {duration} minutes | "
-                            f"type:{task_type} | fixed_time:{fixed_time} | [{status}]"
+                            f"type:{task_type} | fixed_time:{fixed_time} | cost:${cost} | [{status}]"
                         )
 
                 # 4. Select a task
@@ -171,7 +179,7 @@ def main():
                             print("Task not found.")
                             continue
 
-                        task_id, name, duration, selected, task_type, fixed_time = task
+                        task_id, name, duration, selected, task_type, fixed_time, cost = task
 
                         print(f"\nCurrent: {name} - Type: {task_type or 'flexible'}")
                         if fixed_time:

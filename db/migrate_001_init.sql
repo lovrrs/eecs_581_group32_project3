@@ -18,6 +18,7 @@ CREATE TABLE IF NOT EXISTS tasks (
     selected INTEGER NOT NULL DEFAULT 0,
     task_type TEXT CHECK (task_type IN ('flexible', 'fixed')) DEFAULT 'flexible',
     fixed_time TIME,
+    cost DECIMAL(19,4) DEFAULT 0.00,
     category_id INTEGER REFERENCES categories(id),
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (user_id) REFERENCES users(id)
