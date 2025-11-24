@@ -403,9 +403,62 @@ def main():
 
                 # ---- Vacation settings ----
                 elif sub == "3":
-                    print(
-                        "Vacation Settings feature is not implemented "
-                    )
+                    location_repo = LocationRepo(user_id)
+
+                    while True:
+                        print("\nVACATION SETTINGS")
+                        print("1. Save location")
+                        print("2. Display locations")
+                        print("3. Delete location")
+                        print("4. Back to Main Menu")
+                        vac_choice = input("> ").strip()
+
+                        # ---- Save location ----
+                        if vac_choice == "1":
+                            try:
+                                location = input("Enter location (e.g., Seattle, WA): ").strip()
+                                if not location:
+                                    print("Location cannot be empty.")
+                                    continue
+
+                                start_str = input("Enter start date (YYYY-MM-DD): ").strip()
+                                end_str = input("Enter end date (YYYY-MM-DD): ").strip()
+
+                                start_date = datetime.strptime(start_str, "%Y-%m-%d").date()
+                                end_date = datetime.strptime(end_str, "%Y-%m-%d").date()
+
+                                location_id = location_repo.save_location(location, start_date, end_date)
+                                print(f"Location '{location}' saved.")
+                            
+                            except ValueError as e:
+                                print(f"Error: {e}")
+                            except Exception as e:
+                                print(f"Error: {e}")
+
+                        # ---- Display locations ----
+                        elif vac_choice == "2":
+                            locations = location_repo.get_saved_locations()
+                            display_location(locations)
+
+                        # ---- Delete location ----
+                        elif vac_choice == "3":
+                            locations = location_repo.get_saved_locations()
+                            if not locations:
+                                print("No saved locations to delete.")
+                                continue
+
+                            display_location(locations)
+                            loc_id_str = input("Enter location ID to delete: ").strip()
+                            if loc_id_str.isdigit():
+                                confirm = input("Are you sure? (y/n): ").strip().lower()
+                                if confirm == "y":
+                                    loc_id = int(loc_id_str)
+                                    deleted = location_repo.delete_location(loc_id)
+                                    print("Location deleted.")
+                                else:
+                                    print("Deletion cancelled.")
+                            else:
+                                print("Invalid ID.")
 
                 elif sub == "4":
                     break
