@@ -261,7 +261,7 @@ def main():
                     print("Using default time boundaries.")
             
             # Optionally set budget for time period
-            print("\nWould you like to set a budget for the time boundaries? ")
+            print("\nWould you like to set a budget? ")
             if input(
                 "Enter 'y' to input budget: "
             ).strip().lower() == "y":
