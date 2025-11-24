@@ -249,6 +249,14 @@ def main():
                 end = input("End time: ").strip()
                 if not scheduler.set_time_boundaries(start, end):
                     print("Using default time boundaries.")
+            
+            # Optionally set budget for time period
+            print("\nWould you like to set a budget for the time boundaries? ")
+            if input(
+                "Enter 'y' to input budget: "
+            ).strip().lower() == "y":
+                user_budget = input("\nEnter budget (e.g. 230.00): ")
+                scheduler.set_budget(user_budget)
 
             # Build and display schedule
             schedule = scheduler.build_schedule()

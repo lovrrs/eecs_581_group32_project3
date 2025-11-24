@@ -64,6 +64,17 @@ CREATE TABLE IF NOT EXISTS locations (
     FOREIGN KEY (user_id) REFERENCES users(id)
 );
 
+-- budgets table
+CREATE TABLE IF NOT EXISTS budgets (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id INTEGER NOT NULL,
+    start_date DATE NOT NULL,
+    end_date DATE NOT NULL,
+    budget DECIMAL(19,4) NOT NULL,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES users(id)
+);
+
 -- constraint to ensure fixed_time is set for fixed tasks
 -- CREATE TRIGGER validate_fixed_time
 -- BEFORE UPDATE ON tasks FOR EACH ROW

@@ -7,7 +7,6 @@ from datetime import datetime, time, timedelta
 from src.db import get_connection
 from src.task_repo import TaskRepo
 from src.time_periods import determine_period, times_for_slot, next_slot, is_time_in_slot
-from src.travel_time import get_travel_time  # NEW: for travel-time calculation
 
 class AutomaticScheduler:
     def __init__(self, user_id: int):
@@ -85,41 +84,41 @@ class AutomaticScheduler:
         scheduled_slots = []
         unscheduled_tasks = []
 
-        # Place fixed tasks first.
-        for task in (t for t in tasks if self.repo.get_task_type(t[0]) == 'fixed'):
+        for task in tasks:
             task_id, name, duration, *_ = task
             slots_needed = -(-duration // self.time_slot_duration)  # Ceiling division
+            
+            # Try to schedule in each period based on task type
             placed = False
-            fixed_time = self.repo.get_fixed_time(task_id)
-            if fixed_time:
-                # Find slots that match the fixed time
-                for i in range(len(time_slots) - slots_needed + 1):
-                    if time_slots[i]['start'].strftime('%H:%M') == fixed_time:
-                        if self.can_place_task(time_slots, i, slots_needed):
+            
+            # First try to schedule fixed tasks at their specific times
+            task_type = self.repo.get_task_type(task_id)
+            if task_type == 'fixed':
+                fixed_time = self.repo.get_fixed_time(task_id)
+                if fixed_time:
+                    # Find slots that match the fixed time
+                    for i in range(len(time_slots) - slots_needed + 1):
+                        if time_slots[i]['start'].strftime('%H:%M') == fixed_time:
+                            if self.can_place_task(time_slots, i, slots_needed):
+                                self.place_task(time_slots, i, slots_needed, task)
+                                placed = True
+                                break
+            
+            if not placed:
+                periods = ["morning", "afternoon", "evening", "night"]
+                
+                for period in periods:
+                    if placed:
+                        break
+                    
+                    # Find consecutive free slots in the current period
+                    for i in range(len(time_slots) - slots_needed + 1):
+                        if (time_slots[i]['period'] == period and 
+                            self.can_place_task(time_slots, i, slots_needed)):
                             self.place_task(time_slots, i, slots_needed, task)
                             placed = True
                             break
-            # If can't be placed add to list.
-            if not placed:
-                unscheduled_tasks.append(task)
-
-        # Place flexible tasks second.
-        periods = ["morning", "afternoon", "evening", "night"]
-        for task in (t for t in tasks if self.repo.get_task_type(t[0]) != 'fixed'):
-            task_id, name, duration, *_ = task
-            slots_needed = -(-duration // self.time_slot_duration)  # Ceiling division
-            placed = False
-            for period in periods:
-                if placed:
-                    break
-                # Find consecutive free slots in the current period.
-                for i in range(len(time_slots) - slots_needed + 1):
-                    if (time_slots[i]['period'] == period and
-                        self.can_place_task(time_slots, i, slots_needed)):
-                        self.place_task(time_slots, i, slots_needed, task)
-                        placed = True
-                        break
-            # If can't be placed add to list.
+            
             if not placed:
                 unscheduled_tasks.append(task)
 
@@ -168,7 +167,7 @@ class AutomaticScheduler:
         print("="*70)
 
         current_period = None
-        for idx, slot in enumerate(schedule):
+        for slot in schedule:
             if slot['period'] != current_period:
                 current_period = slot['period']
                 print(f"\n{current_period.upper()}:")
@@ -178,19 +177,18 @@ class AutomaticScheduler:
             end_time = slot['end'].strftime("%I:%M %p")
             print(f"{start_time:>8} - {end_time:<8}: {slot['task_name']}")
 
-            # NEW: show travel time between this task and the next one
-            if idx < len(schedule) - 1:
-                current_task_id = slot['task_id']
-                next_task_id = schedule[idx + 1]['task_id']
+    def set_budget(self, budget):
+        stripped_budget =""
+        for char in budget:
+            if char in [str(i) for i in range(11)] or char == ".":
+                stripped_budget += char
+                
+        with get_connection() as conn:
+            cur = conn.execute(
+                "INSERT INTO budgets (user_id, start_date, end_date, budget) VALUES (?, ?, ?, ?)",
+                (self.user_id, self.schedule_start.isoformat(), self.schedule_end.isoformat(), stripped_budget)
+            )
+            conn.commit()
+            return cur.lastrowid
 
-                # Only show travel if we’re actually going to a different task
-                if current_task_id != next_task_id:
-                    # These require TaskRepo.get_task_location and travel_time.get_travel_time
-                    try:
-                        curr_loc = self.repo.get_task_location(current_task_id)
-                        next_loc = self.repo.get_task_location(next_task_id)
-                        tt = get_travel_time(curr_loc, next_loc)
-                        print(f"           -> Travel from {curr_loc or 'Unknown'} to {next_loc or 'Unknown'}: {tt} min")
-                    except AttributeError:
-                        # If get_task_location isn't implemented yet, fail quietly
-                        pass
+        return
