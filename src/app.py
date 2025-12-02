@@ -245,14 +245,13 @@ def main():
                                 "Enter fixed time (HH:MM AM/PM): "
                             ).strip()
                             try:
-                                # convert to 24-hour format for storage
-                                time_obj = datetime.strptime(fixed_time_input, "%I:%M %p")
-                                fixed_time_24 = time_obj.strftime("%H:%M")
-                                
                                 repo.set_task_type(
-                                    task_id, "fixed", fixed_time_24 # store as 24-hour format
+                                    task_id, "fixed", fixed_time_input
                                 )
-                                
+                                # convert for display
+                                time_obj = datetime.strptime(
+                                    fixed_time_input, "%I:%M %p"
+                                )
                                 print(
                                     f"Task '{name}' set as fixed at "
                                     f"{time_obj.strftime('%I:%M %p')}."
@@ -368,21 +367,7 @@ def main():
                                 if task_ids:
                                     print(f"\n✓ {len(task_ids)} suggestion(s) added to your tasks!")
                                     print("These tasks are marked as '[Suggested]' and are automatically selected.")
-
-                                    rebuild = input("Would you like to rebuild your schedule to include these new tasks? (y/n): ").strip().lower()
-                                    if rebuild == "y":
-                                        # Rebuild schedule
-                                        print("\nRebuilding schedule with new tasks...")
-                                        new_schedule = scheduler.build_schedule()
-                                        if new_schedule:
-                                            scheduler.display_schedule(new_schedule)
-                                            
-                                            # Update saved schedule
-                                            saved_scheduler = scheduler
-                                            saved_schedule = new_schedule
-                                            most_recent = "auto"
-                                        else:
-                                            print("Failed to rebuild schedule.")
+                                    print("\nYou can rebuild your schedule to include these new tasks.")
                                 else:
                                     print("\nNo suggestions were added.")
                             else:
