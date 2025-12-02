@@ -468,6 +468,10 @@ def main():
                             else:
                                 print("Invalid ID.")
 
+                        # ---- Back to main menu ----
+                        elif vac_choice == "4":
+                            break
+
                 elif sub == "4":
                     break
                 else:

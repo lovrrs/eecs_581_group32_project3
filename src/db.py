@@ -26,20 +26,15 @@ def run_migrations():
             "Migration file not found at db/migrate_001_init.sql"
         )
     with get_connection() as conn:
-        # Check if all tables exist
-        cur = conn.execute(
-            "SELECT name FROM sqlite_master WHERE type='table' "
-            "AND name IN ('users', 'tasks', 'categories')"
-        )
-        existing_tables = {row[0] for row in cur.fetchall()}
-        required_tables = {"users", "tasks", "categories"}
-
         # run migration if any required table is missing
-        if existing_tables != required_tables:
-            sql = migration.read_text(encoding="utf-8")
-            conn.executescript(sql)
-        else:
-            pass  # all tables exist, skip migration
+        sql = migration.read_text(encoding="utf-8")
+        conn.executescript(sql)
+
+        # verify tables created
+        cur = conn.execute(
+            "SELECT name FROM sqlite_master WHERE type='table'"
+        )
+        tables = {row[0] for row in cur.fetchall()}
 
         #  Ensure 'location' column exists on tasks table for travel-time logic
         cur = conn.execute("PRAGMA table_info(tasks)")

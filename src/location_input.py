@@ -75,7 +75,7 @@ def display_location(locations):
         duration = (datetime.strptime(end_date, "%Y-%m-%d") - datetime.strptime(start_date, "%Y-%m-%d")).days
 
         print(f"{idx:2d}. {loc}")
-        print(f"    🗓 {start} to {end} ({duration} days)")
+        print(f"    {start} to {end} ({duration} days)")
         print(f"    📅 Saved: {datetime.strptime(created_at, '%Y-%m-%d %H:%M:%S').strftime('%b %d, %Y')}")
         print()
     print("="*50)
