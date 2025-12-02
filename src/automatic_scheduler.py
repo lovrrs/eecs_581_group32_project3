@@ -4,6 +4,7 @@
 # Created: 2025-11-09
 
 from datetime import datetime, time, timedelta
+import math
 from src.db import get_connection
 from src.task_repo import TaskRepo
 from src.time_periods import determine_period, times_for_slot, next_slot, is_time_in_slot
@@ -68,70 +69,137 @@ class AutomaticScheduler:
     def build_schedule(self):
         """Automatically build a schedule by intelligently placing tasks in time slots"""
         # Get selected tasks
-        tasks = [t for t in self.repo.list_tasks() if t[3]]
-        if not tasks:
-            print("No tasks selected. Please select tasks first!")
-            return None
+        tasks = self.repo.get_selected_tasks()
 
-        time_slots = self.generate_time_slots()
-        if not time_slots:
-            print("No available time slots in the schedule!")
-            return None
+        # create full schedule with all time slots
+        schedule = self._create_empty_schedule()
 
-        # Sort tasks by duration (longer tasks first)
-        tasks.sort(key=lambda x: x[2], reverse=True)
-
-        scheduled_slots = []
-        unscheduled_tasks = []
+        # place fixed tasks
+        fixed_tasks = []
+        flexible_tasks = []
 
         for task in tasks:
-            task_id, name, duration, *_ = task
-            slots_needed = -(-duration // self.time_slot_duration)  # Ceiling division
+            task_id, name, duration, task_type, fixed_time, cost = task
+            if task_type == 'fixed' and fixed_time:
+                fixed_tasks.append((task_id, name, duration, fixed_time))
+            else:
+                flexible_tasks.append((task_id, name, duration))
+
+        # place all fixed tasks first
+        for task in fixed_tasks:
+            task_id, name, duration, fixed_time = task
             
-            # Try to schedule in each period based on task type
-            placed = False
-            
-            # First try to schedule fixed tasks at their specific times
-            task_type = self.repo.get_task_type(task_id)
-            if task_type == 'fixed':
-                fixed_time = self.repo.get_fixed_time(task_id)
-                if fixed_time:
-                    # Find slots that match the fixed time
-                    for i in range(len(time_slots) - slots_needed + 1):
-                        if time_slots[i]['start'].strftime('%H:%M') == fixed_time:
-                            if self.can_place_task(time_slots, i, slots_needed):
-                                self.place_task(time_slots, i, slots_needed, task)
-                                placed = True
+            # parse fixed time
+            try:
+                fixed_time_dt = datetime.strptime(fixed_time, '%H:%M').time()
+
+                # find which slot contains this time
+                for i, slot in enumerate(schedule):
+                    if slot['start'] <= fixed_time_dt < slot['end']:
+                        # calculate slots needed
+                        slots_needed = math.ceil(duration / self.time_slot_duration)
+
+                        # check if we have enough consecutive free slots
+                        if i + slots_needed <= len(schedule):
+                            can_place = True
+                            for j in range(slots_needed):
+                                if schedule[i+j].get('task_id') is not None:
+                                    can_place = False
+                                    break
+                            if can_place:
+                                # place the task
+                                for j in range(slots_needed):
+                                    schedule[i+j]['task_id'] = task_id
+                                    schedule[i+j]['task_name'] = name
                                 break
-            
-            if not placed:
-                periods = ["morning", "afternoon", "evening", "night"]
-                
-                for period in periods:
-                    if placed:
                         break
-                    
-                    # Find consecutive free slots in the current period
-                    for i in range(len(time_slots) - slots_needed + 1):
-                        if (time_slots[i]['period'] == period and 
-                            self.can_place_task(time_slots, i, slots_needed)):
-                            self.place_task(time_slots, i, slots_needed, task)
-                            placed = True
-                            break
+            except ValueError:
+                continue
+
             
-            if not placed:
-                unscheduled_tasks.append(task)
+        # place flexible tasks
+        for task in flexible_tasks:
+            task_id, name, duration = task
+            slots_needed = math.ceil(duration / self.time_slot_duration)
 
-        # Create final schedule with only assigned slots
-        final_schedule = [slot for slot in time_slots if slot['task_id'] is not None]
+            # find consecutive free slots in any period
+            for i in range(len(schedule) - slots_needed + 1):
+                # check if slots are free
+                can_place = True
+                for j in range(slots_needed):
+                    if schedule[i+j].get('task_id') is not None:
+                        can_place = False
+                        break
+                if can_place:
+                    for j in range(slots_needed):
+                        schedule[i+j]['task_id'] = task_id
+                        schedule[i+j]['task_name'] = name
+                    break
+                
+        return schedule
+        # if not tasks:
+        #     print("No tasks selected. Please select tasks first!")
+        #     return None
+
+        # time_slots = self.generate_time_slots()
+        # if not time_slots:
+        #     print("No available time slots in the schedule!")
+        #     return None
+
+        # # Sort tasks by duration (longer tasks first)
+        # tasks.sort(key=lambda x: x[2], reverse=True)
+
+        # scheduled_slots = []
+        # unscheduled_tasks = []
+
+        # for task in tasks:
+        #     task_id, name, duration, *_ = task
+        #     slots_needed = -(-duration // self.time_slot_duration)  # Ceiling division
+            
+        #     # Try to schedule in each period based on task type
+        #     placed = False
+            
+        #     # First try to schedule fixed tasks at their specific times
+        #     task_type = self.repo.get_task_type(task_id)
+        #     if task_type == 'fixed':
+        #         fixed_time = self.repo.get_fixed_time(task_id)
+        #         if fixed_time:
+        #             # Find slots that match the fixed time
+        #             for i in range(len(time_slots) - slots_needed + 1):
+        #                 if time_slots[i]['start'].strftime('%H:%M') == fixed_time:
+        #                     if self.can_place_task(time_slots, i, slots_needed):
+        #                         self.place_task(time_slots, i, slots_needed, task)
+        #                         placed = True
+        #                         break
+            
+        #     if not placed:
+        #         periods = ["morning", "afternoon", "evening", "night"]
+                
+        #         for period in periods:
+        #             if placed:
+        #                 break
+                    
+        #             # Find consecutive free slots in the current period
+        #             for i in range(len(time_slots) - slots_needed + 1):
+        #                 if (time_slots[i]['period'] == period and 
+        #                     self.can_place_task(time_slots, i, slots_needed)):
+        #                     self.place_task(time_slots, i, slots_needed, task)
+        #                     placed = True
+        #                     break
+            
+        #     if not placed:
+        #         unscheduled_tasks.append(task)
+
+        # # Create final schedule with only assigned slots
+        # final_schedule = [slot for slot in time_slots if slot['task_id'] is not None]
         
-        # Report unscheduled tasks
-        if unscheduled_tasks:
-            print("\nWarning: The following tasks could not be scheduled:")
-            for task in unscheduled_tasks:
-                print(f"- {task[1]} ({task[2]} minutes)")
+        # # Report unscheduled tasks
+        # if unscheduled_tasks:
+        #     print("\nWarning: The following tasks could not be scheduled:")
+        #     for task in unscheduled_tasks:
+        #         print(f"- {task[1]} ({task[2]} minutes)")
 
-        return final_schedule
+        # return final_schedule
 
     def can_place_task(self, time_slots, start_idx, slots_needed):
         """Check if a task can be placed in consecutive slots"""
@@ -166,16 +234,39 @@ class AutomaticScheduler:
         print(f"                         {self.schedule_start.strftime('%I:%M %p')} - {self.schedule_end.strftime('%I:%M %p')}")
         print("="*70)
 
-        current_period = None
-        for slot in schedule:
-            if slot['period'] != current_period:
-                current_period = slot['period']
-                print(f"\n{current_period.upper()}:")
-                print("-" * 50)
-            
-            start_time = slot['start'].strftime("%I:%M %p")
-            end_time = slot['end'].strftime("%I:%M %p")
-            print(f"{start_time:>8} - {end_time:<8}: {slot['task_name']}")
+        # Display schedule grouped by periods
+        morning_slots = [slot for slot in schedule if slot['period'] == 'morning'] # 5am-12pm
+        afternoon_slots = [slot for slot in schedule if slot['period'] == 'afternoon'] # 12pm-5pm
+        evening_slots = [slot for slot in schedule if slot['period'] == 'evening'] # 5pm-9pm
+        night_slots = [slot for slot in schedule if slot['period'] == 'night'] # 9pm-5am
+
+        # display morning
+        if morning_slots:
+            print(f"\nMORNING:")
+            print("-" * 50)
+            for slot in morning_slots:
+                self._display_slot(slot)
+
+        # display afternoon
+        if afternoon_slots:
+            print(f"\nAFTERNOON:")
+            print("-" * 50)
+            for slot in afternoon_slots:
+                self._display_slot(slot)
+
+        # display evening
+        if evening_slots:
+            print(f"\nEVENING:")
+            print("-" * 50)
+            for slot in evening_slots:
+                self._display_slot(slot)
+
+        # display night
+        if night_slots:
+            print(f"\nNIGHT:")
+            print("-" * 50)
+            for slot in night_slots:
+                self._display_slot(slot)
 
     def set_budget(self, budget):
         stripped_budget =""
@@ -192,3 +283,34 @@ class AutomaticScheduler:
             return cur.lastrowid
 
         return
+    
+    def _display_slot(self, slot):
+        """Display a single time slot"""
+        start_str = slot['start'].strftime('%I:%M %p')
+        end_str = slot['end'].strftime('%I:%M %p')
+
+        if slot.get('task_id') is not None:
+            task_name = slot.get('task_name', 'Unnamed Task')
+            print(f"{start_str} - {end_str} | {task_name}")
+        else:
+            print(f"{start_str} - {end_str} | [Empty]")
+
+    def _create_empty_schedule(self):
+        """Create an empty schedule structure"""
+        schedule = []
+        curr_time = datetime.combine(datetime.today(), self.schedule_start)
+        end_datetime = datetime.combine(datetime.today(), self.schedule_end)
+
+        while curr_time < end_datetime:
+            slot_end = curr_time + timedelta(minutes=self.time_slot_duration)
+            if slot_end > end_datetime:
+                break
+            schedule.append({
+                'start': curr_time.time(),
+                'end': slot_end.time(),
+                'period': determine_period(curr_time.time().strftime('%H:%M')),
+                'task_id': None,
+                'task_name': None
+            })
+            curr_time = slot_end
+        return schedule
