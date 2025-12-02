@@ -64,7 +64,7 @@ class CategoryRepo:
         categories.sort(key=lambda x: x[0])
 
         print("\n" + "="*50)
-        print("CATEGORIES")
+        print("                     CATEGORIES")
         print("="*50)
         for cat_id, name, task_count in categories:
             print(f"{cat_id:2d}. {name} ({task_count} tasks):")

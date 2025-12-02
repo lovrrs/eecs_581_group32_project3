@@ -162,8 +162,8 @@ class AutomaticScheduler:
             return
 
         print("\n" + "="*70)
-        print(f"                   AUTOMATIC SCHEDULE")
-        print(f"             {self.schedule_start.strftime('%I:%M %p')} - {self.schedule_end.strftime('%I:%M %p')}")
+        print(f"                          AUTOMATIC SCHEDULE")
+        print(f"                         {self.schedule_start.strftime('%I:%M %p')} - {self.schedule_end.strftime('%I:%M %p')}")
         print("="*70)
 
         current_period = None

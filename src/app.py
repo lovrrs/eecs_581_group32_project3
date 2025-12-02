@@ -38,7 +38,9 @@ def main():
     while True:
         # print main menu after each option
         print("Welcome to Schedule Builder!\n")
-        print("MAIN MENU")
+        print("="*50)
+        print("                     MAIN MENU")
+        print("="*50)
         print("1. Manage Tasks")
         print("2. Manual Scheduler")
         print("3. Automatic Scheduler")
@@ -55,7 +57,9 @@ def main():
         # ================= MANAGE TASKS MENU =================
         if cmd == "1":
             while True:
-                print("\nMANAGE TASKS")
+                print("\n" + "="*50)
+                print("                   MANAGE TASKS")
+                print("="*50)
                 print("1. Add a new task")
                 print("2. Delete a task")
                 print("3. List all tasks")
@@ -68,6 +72,9 @@ def main():
 
                 # 1. Add a new task
                 if sub == "1":
+                    print("\n" + "="*50)
+                    print("                    ADD A NEW TASK")
+                    print("="*50)
                     name = input("Task name: ").strip()
                     duration_str = input(
                         "Duration (min, integer > 0): "
@@ -127,6 +134,9 @@ def main():
 
                 # 2. Delete a task
                 elif sub == "2":
+                    print("\n" + "="*50)
+                    print("                   DELETE A TASK")
+                    print("="*50)
                     repo.list_tasks()  # list tasks
                     task_id_str = input("Task ID to delete: ").strip()
                     try:
@@ -141,6 +151,9 @@ def main():
 
                 # 3. List all tasks
                 elif sub == "3":
+                    print("\n" + "="*50)
+                    print("                     TASKS")
+                    print("="*50)
                     rows = repo.list_tasks()
                     if not rows:
                         print("(no tasks yet)")
@@ -154,7 +167,22 @@ def main():
 
                 # 4. Select a task
                 elif sub == "4":
-                    repo.list_tasks()  # list tasks
+                    # display tasks
+                    print("\n" + "="*50)
+                    print("                     TASKS")
+                    print("="*50)
+                    rows = repo.list_tasks()
+                    if not rows:
+                        print("(no tasks yet)")
+                        return
+                    for t in rows:
+                        task_id, name, duration, selected, task_type, fixed_time, cost = t
+                        status = "✓" if selected else "✗"
+                        print(
+                            f"{task_id}. {name} | {duration} minutes | "
+                            f"type:{task_type} | fixed_time:{fixed_time} | cost:${cost} | [{status}]"
+                        )
+
                     tid_str = input("Task ID: ").strip()
                     try:
                         tid = int(tid_str)
@@ -166,7 +194,22 @@ def main():
 
                 # 5. Set task as flexible/fixed
                 elif sub == "5":
-                    repo.list_tasks()  # list tasks
+                    # display tasks
+                    print("\n" + "="*50)
+                    print("                     TASKS")
+                    print("="*50)
+                    rows = repo.list_tasks()
+                    if not rows:
+                        print("(no tasks yet)")
+                        return
+                    for t in rows:
+                        task_id, name, duration, selected, task_type, fixed_time, cost = t
+                        status = "✓" if selected else "✗"
+                        print(
+                            f"{task_id}. {name} | {duration} minutes | "
+                            f"type:{task_type} | fixed_time:{fixed_time} | cost:${cost} | [{status}]"
+                        )
+
                     task_id_str = input("Enter task ID to modify: ").strip()
                     try:
                         task_id = int(task_id_str)
@@ -222,6 +265,9 @@ def main():
 
                 # 6. Export task info
                 elif sub == "6":
+                    print("\n" + "="*50)
+                    print("                  EXPORT TASK INFO")
+                    print("="*50)
                     export_tasks(repo)
 
                 # Back to main menu
@@ -240,9 +286,6 @@ def main():
         # ================= AUTOMATIC SCHEDULER =================
         elif cmd == "3":
             scheduler = AutomaticScheduler(user_id)
-
-            print("\nAutomatic Schedule Builder")
-            print("-------------------------")
 
             # Optionally set time boundaries
             print(
@@ -337,7 +380,10 @@ def main():
         # ================= SETTINGS MENU =================
         elif cmd == "4":
             while True:
-                print("\nSETTINGS")
+                
+                print("\n" + "="*50)
+                print("                     SETTINGS")
+                print("="*50)
                 print("1. Manage categories")
                 print("2. Break settings")
                 print("3. Vacation settings")
@@ -350,7 +396,9 @@ def main():
                     category_repo = CategoryRepo(user_id)
 
                     while True:
-                        print("\nCATEGORY MANAGEMENT")
+                        print("\n" + "="*50)
+                        print("                 CATEGORY MANAGEMENT")
+                        print("="*50)
                         print("1. List Categories")
                         print("2. Add Category")
                         print("3. Delete Category")
@@ -395,6 +443,9 @@ def main():
 
                 # ---- Break settings ----
                 elif sub == "2":
+                    print("\n" + "="*50)
+                    print("                  BREAK SETTINGS")
+                    print("="*50)
                     if (
                         input(
                             "Enable automatic breaks (Y/N):  "
@@ -414,7 +465,9 @@ def main():
                     location_repo = LocationRepo(user_id)
 
                     while True:
-                        print("\nVACATION SETTINGS")
+                        print("\n" + "="*50)
+                        print("                  VACATION SETTINGS")
+                        print("="*50)
                         print("1. Save location")
                         print("2. Display locations")
                         print("3. Delete location")
@@ -471,7 +524,7 @@ def main():
                         # ---- Back to main menu ----
                         elif vac_choice == "4":
                             break
-
+                # ---- Back to main menu ----
                 elif sub == "4":
                     break
                 else:

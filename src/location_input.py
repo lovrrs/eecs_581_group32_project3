@@ -66,7 +66,7 @@ def display_location(locations):
         return
     
     print("\n" + "="*50)
-    print("SAVED VACATION LOCATIONS:")
+    print("            SAVED VACATION LOCATIONS:")
     print("="*50 + "\n")
 
     for idx, loc, start_date, end_date, created_at in locations:
