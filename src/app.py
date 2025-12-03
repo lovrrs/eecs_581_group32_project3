@@ -292,8 +292,7 @@ def main():
                 print("1. Build New Schedule")
                 print("2. Clear All Selections")
                 print("3. View Current Schedule")
-                print("4. View Weather Forecast")
-                print("5. Back to Main Menu")
+                print("4. Back to Main Menu")
                 sub_cmd = input("> ").strip().lower()
                 print()
 
@@ -415,30 +414,8 @@ def main():
                     else:
                         print("No schedule available. Please build a new schedule first.")
 
-                # ---- View weather forecast ----
-                elif sub_cmd == "4":
-                    location = input(
-                        "Enter location for weather forecast (e.g., Seattle, WA): "
-                    ).strip()
-                    if not location:
-                        print("Location cannot be empty.")
-                        continue
-                    try:
-                        weather_data = get_weather_sync(location)
-                        if weather_data:
-                            print(f"\nWeather Forecast for {location}:")
-                            for entry in weather_data:
-                                dt = entry['datetime'].strftime("%Y-%m-%d %I:%M %p")
-                                temp = entry['temperature']
-                                desc = entry['description']
-                                print(f"{dt} | {temp}°F | {desc}")
-                        else:
-                            print("No weather data available.")
-                    except Exception as e:
-                        print(f"Error retrieving weather data: {e}")
-
                 # ---- Back to main menu ----
-                elif sub_cmd == "5":
+                elif sub_cmd == "4":
                     break
 
                 else:
