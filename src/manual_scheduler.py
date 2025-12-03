@@ -6,6 +6,7 @@
 from datetime import datetime, time, timedelta
 from src.db import get_connection
 from src.task_repo import TaskRepo
+from src.time_periods import determine_period
 
 class ManualScheduler:
     def __init__(self, user_id:int):
@@ -61,6 +62,7 @@ class ManualScheduler:
             slots.append({
                 'start': curr_time.time(),
                 'end': slot_end.time(),
+                'period': determine_period(curr_time.time().strftime('%H:%M')),
                 'task_id': None,
                 'task_name': None
             })
@@ -88,6 +90,7 @@ class ManualScheduler:
         new_slots.append({
             'start': slot_start_time,
             'end': new_end_datetime.time(),
+            'period': determine_period(slot_start_time.strftime('%H:%M')),
             'task_id': task_id,
             'task_name': name
         })
@@ -106,6 +109,7 @@ class ManualScheduler:
             new_slots.append({
                 'start': curr.time(),
                 'end': slot_end.time(),
+                'period': determine_period(curr.time().strftime('%H:%M')),
                 'task_id': None,
                 'task_name': None
             })
@@ -113,24 +117,61 @@ class ManualScheduler:
 
         return new_slots
     
-    def display_schedule_grid(self, available_tasks):
+    def display_schedule_grid(self, time_slots):
         """Display schedule grid with current assignments"""
-        print("\n" + "="*70)
-        print("                      MANUAL SCHEDULE BUILDER")
-        print("="*70)
-
-        selected_tasks = [t for t in available_tasks if t[3]] # t[3] is selected flag
-        
-        if not selected_tasks:
-            print("No tasks selected! Use command '4' in main menu to select tasks first.")
+        if not time_slots:
+            print("No schedule to display.")
             return
         
-        # display selected tasks
-        for task in selected_tasks:
-            task_id, name, duration = task
-            print(f'{task_id:2d}. {name} ({duration} minutes)')
+        print("\n" + "="*70)
+        print(f"                            MANUAL SCHEDULE")
+        print(f"                           {self.schedule_start.strftime('%I:%M %p')} - {self.schedule_end.strftime('%I:%M %p')}")
+        print("="*70)
 
-        print("-"*70)
+        # Display schedule grouped by periods
+        morning_slots = [slot for slot in time_slots if slot['period'] == 'morning'] # 5am-12pm
+        afternoon_slots = [slot for slot in time_slots if slot['period'] == 'afternoon'] # 12pm-5pm
+        evening_slots = [slot for slot in time_slots if slot['period'] == 'evening'] # 5pm-9pm
+        night_slots = [slot for slot in time_slots if slot['period'] == 'night'] # 9pm-5am
+
+        # display morning
+        if morning_slots:
+            print(f"\nMORNING:")
+            print("-" * 50)
+            for slot in morning_slots:
+                self._display_slot(slot)
+
+        # display afternoon
+        if afternoon_slots:
+            print(f"\nAFTERNOON:")
+            print("-" * 50)
+            for slot in afternoon_slots:
+                self._display_slot(slot)
+
+        # display evening
+        if evening_slots:
+            print(f"\nEVENING:")
+            print("-" * 50)
+            for slot in evening_slots:
+                self._display_slot(slot)
+
+        # display night
+        if night_slots:
+            print(f"\nNIGHT:")
+            print("-" * 50)
+            for slot in night_slots:
+                self._display_slot(slot)
+
+    def _display_slot(self, slot):
+        """Display a single time slot"""
+        start_str = slot['start'].strftime('%I:%M %p')
+        end_str = slot['end'].strftime('%I:%M %p')
+
+        if slot.get('task_id') is not None:
+            task_name = slot.get('task_name', 'Unnamed Task')
+            print(f"{start_str} - {end_str} | {task_name}")
+        else:
+            print(f"{start_str} - {end_str} | [Empty]")
 
     def save_schedule(self, time_slots, schedule_name: str = "Manual Schedule"):
         """Save manual schedule to database"""
@@ -165,9 +206,9 @@ def run_manual_scheduler(user_id:int):
     """Main function to run the manual scheduler"""
     scheduler = ManualScheduler(user_id)
 
-    print("\n" + "="*60)
-    print("               MANUAL SCHEDULE BUILDER")
-    print("="*60)
+    print("\n" + "="*70)
+    print("                        MANUAL SCHEDULE BUILDER")
+    print("="*70)
     print("Build your schedule by assigning tasks to specific time slots!")
     print("------------------------------------------------------------")
 
@@ -205,12 +246,7 @@ def run_manual_scheduler(user_id:int):
         elif choice == '2':
             """View schedule"""
 
-            print("\nCurrent Schedule:")
-            for i, slot in enumerate(time_slots, start=1):
-                start = slot['start'].strftime("%H:%M")
-                end = slot['end'].strftime("%H:%M")
-                task_name = slot['task_name'] or "-"
-                print(f"{i:2d}. {start} - {end}: {task_name}")
+            scheduler.display_schedule_grid(time_slots)
 
         elif choice == '3':
             """Assign a task to a time slot"""
@@ -218,12 +254,7 @@ def run_manual_scheduler(user_id:int):
             print()
             print("\nAssign a task to a time slot")
 
-            print("\nCurrent Schedule:")
-            for i, slot in enumerate(time_slots, start=1):
-                start = slot['start'].strftime("%H:%M")
-                end = slot['end'].strftime("%H:%M")
-                task_name = slot['task_name'] or "-"
-                print(f"{i:2d}. {start} - {end}: {task_name}")
+            scheduler.display_schedule_grid(time_slots)
 
             slot_num = input("Enter time slot number: ").strip()
 
@@ -258,13 +289,7 @@ def run_manual_scheduler(user_id:int):
         elif choice == '4':
             """Clear a slot on the schedule"""
 
-            # print current schedule
-            print("\n Current Schedule:")
-            for i, slot in enumerate(time_slots, start=1):
-                start = slot['start'].strftime("%H:%M") # start time
-                end = slot['end'].strftime("%H:%M") # end time
-                task_name = slot['task_name'] or "-" # task name
-                print(f"{i:2d}. {start} - {end}: {task_name}")
+            scheduler.display_schedule_grid(time_slots)
 
             slot_num = input("Enter time slot number: ").strip() # user input for slot number
 
