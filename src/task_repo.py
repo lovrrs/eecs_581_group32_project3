@@ -225,3 +225,14 @@ class TaskRepo:
                 (self.user_id, category_id),
             )
             return cur.fetchall()
+        
+
+    def get_selected_tasks(self):
+        """Get all selected tasks for the user."""
+        with get_connection() as conn:
+            cur = conn.execute(
+                "SELECT id, name, duration_minutes, task_type, fixed_time, cost "
+                "FROM tasks WHERE user_id=? AND selected=1 ORDER BY id",
+                (self.user_id,),
+            )
+            return cur.fetchall()

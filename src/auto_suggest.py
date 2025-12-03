@@ -17,7 +17,8 @@ def generate_suggestions(
     schedule_start: time,
     schedule_end: time,
     time_slot_duration: int = 30,
-    min_slot_duration: int = 30
+    min_slot_duration: int = 30,
+    max_slot_duration: int = 180
 ) -> List[Dict]:
     """
     Generate suggestions for points of interest to fill open time slots.
@@ -29,6 +30,7 @@ def generate_suggestions(
         schedule_end: End time of the schedule
         time_slot_duration: Duration of each time slot in minutes (default: 30)
         min_slot_duration: Minimum duration for a suggestion slot in minutes (default: 30)
+        max_slot_duration: Maximum duration for a suggestion slot in minutes (default: 180)
         
     Returns:
         List of suggested activities with time slots and place information
@@ -58,39 +60,105 @@ def generate_suggestions(
     # Generate suggestions for each open slot
     for slot in open_slots:
         slot_duration = slot['duration_minutes']
-        
-        # Determine activity type based on time of day
-        period = _determine_period(slot['start_time'])
-        activity_query = _get_activity_query(period, slot_duration)
-        
-        try:
-            # Search for places
-            places = places_api.search_places(activity_query, location)
-            
-            if places:
-                # Select the best place (highest rated)
-                best_place = max(places, key=lambda p: p.get('rating', 0) if isinstance(p.get('rating'), (int, float)) else 0)
-                
-                # Suggest appropriate duration (round to nearest 30 minutes, minimum 30)
-                suggested_duration = max(min_slot_duration, (slot_duration // 30) * 30)
-                
-                suggestion = {
-                    'start_time': slot['start_time'],
-                    'end_time': slot['end_time'],
-                    'duration_minutes': suggested_duration,
-                    'name': best_place['name'],
-                    'address': best_place.get('address', 'Address not available'),
-                    'rating': best_place.get('rating', 'N/A'),
-                    'place_types': best_place.get('types', []),
-                    'place_id': best_place.get('place_id'),
-                }
+
+        if slot_duration > max_slot_duration:
+            # calculate max-duration chunks
+            num_chunks = slot_duration // max_slot_duration
+            remaining = slot_duration % max_slot_duration
+
+            # create multiple suggestions for long slots
+            curr_time = slot['start_time']
+            for i in range(num_chunks):
+                # create sub-slot
+                sub_slot_duration = max_slot_duration
+                end_time = _add_minutes_to_time(curr_time, sub_slot_duration)
+
+                # generate suggestion for sub-slot
+                suggestion = _generate_single_suggestion(
+                    places_api,
+                    location,
+                    curr_time,
+                    end_time,
+                    sub_slot_duration,
+                    min_slot_duration
+                )
+                if suggestion:
+                    suggestions.append(suggestion)
+                curr_time = end_time
+
+            # handle remaining time
+            if remaining >= min_slot_duration:
+                end_time = _add_minutes_to_time(curr_time, remaining)
+                suggestion = _generate_single_suggestion(
+                    places_api,
+                    location,
+                    curr_time,
+                    end_time,
+                    remaining,
+                    min_slot_duration
+                )
+                if suggestion:
+                    suggestions.append(suggestion)
+        else:
+            # generate single suggestion
+            suggestion = _generate_single_suggestion(
+                places_api,
+                location,
+                slot['start_time'],
+                slot['end_time'],
+                slot_duration,
+                min_slot_duration
+            )
+            if suggestion:
                 suggestions.append(suggestion)
-        except Exception as e:
-            print(f"Error searching for places: {e}")
-            continue
-    
+        
     return suggestions
 
+def _add_minutes_to_time(time_obj: time, minutes: int) -> time:
+    """Add minutes to a time object and return new time."""
+    full_datetime = datetime.combine(datetime.today(), time_obj) + timedelta(minutes=minutes)
+    return full_datetime.time()
+
+def _generate_single_suggestion(
+    places_api,
+    location: str,
+    start_time: time,
+    end_time: time,
+    duration: int,
+    min_slot_duration: int
+) -> Optional[Dict]:
+    """Helper func to generate single suggestion"""
+    # Determine activity type based on time of day
+    period = _determine_period(start_time)
+    activity_query = _get_activity_query(period, duration)
+    
+    try:
+        # Search for places
+        places = places_api.search_places(activity_query, location)
+        
+        if places:
+            # Select the best place (highest rated)
+            best_place = max(places, key=lambda p: p.get('rating', 0) if isinstance(p.get('rating'), (int, float)) else 0)
+            
+            # Suggest appropriate duration (round to nearest 30 minutes, minimum 30)
+            suggested_duration = max(min_slot_duration, (duration // 30) * 30)
+            
+            suggestion = {
+                'start_time': start_time,
+                'end_time': end_time,
+                'duration_minutes': suggested_duration,
+                'name': best_place['name'],
+                'address': best_place.get('address', 'Address not available'),
+                'rating': best_place.get('rating', 'N/A'),
+                'place_types': best_place.get('types', []),
+                'place_id': best_place.get('place_id'),
+            }
+            return suggestion
+    except Exception as e:
+        print(f"Error searching for places: {e}")
+    
+    return None
+    
 
 def insert_suggestions(
     user_id: int,
@@ -224,7 +292,7 @@ def _find_open_slots(
                 'end_time': open_end,
                 'duration_minutes': duration_minutes
             })
-        
+            
         i = j
     
     return open_slots
@@ -273,30 +341,30 @@ def _get_activity_query(period: str, duration_minutes: int) -> str:
     # Activity suggestions based on time of day
     if period == "morning":
         if duration_minutes >= 120:
-            return "parks"
+            return "parks hiking trails"
         elif duration_minutes >= 60:
-            return "cafes"
+            return "cafes breakfast restaurants"
         else:
             return "coffee shops"
     elif period == "afternoon":
         if duration_minutes >= 120:
-            return "museums"
+            return "museums shopping malls"
         elif duration_minutes >= 60:
-            return "restaurants"
+            return "restaurants movie theaters"
         else:
-            return "shopping"
+            return "cafes libraries"
     elif period == "evening":
         if duration_minutes >= 120:
-            return "restaurants"
+            return "restaurants entertainment"
         elif duration_minutes >= 60:
-            return "movie theaters"
+            return "movie theaters restaurants"
         else:
-            return "bars"
+            return "ice cream desserts"
     else:  # night
-        if duration_minutes >= 60:
-            return "restaurants"
+        if duration_minutes >= 90:
+            return "late night restaurants"
         else:
-            return "bars"
+            return "bars nightlife"
 
 
 def display_suggestions(suggestions: List[Dict]) -> None:

@@ -3,16 +3,20 @@
 # Programmer(s): Jace Keagy, K Li, Lan Lim, Jenna Luong, Kit Magar, Bryce Martin
 # Created: 2025-11-20
 
+from pyparsing import Path
 import requests
 import os
+from dotenv import load_dotenv
 from typing import List, Dict, Optional
 
-GOOGLE_PLACES_API_KEY = os.getenv('AIzaSyCCHyFpswfK7odUmjp1gLpDlYgR5UcHr9I')
+env_path = Path(__file__).resolve().parents[1] / ".env"
+load_dotenv(dotenv_path=env_path)  # Load environment variables from .env file
+GOOGLE_PLACES_API_KEY = os.getenv("GOOGLE_PLACES_API_KEY")
 
 class PlacesAPI:
     def __init__(self):
         self.api_key = GOOGLE_PLACES_API_KEY
-        self.base_url = "https://maps.googleapis.com/maps/api/place/nearbysearch/json"
+        self.base_url = "https://maps.googleapis.com/maps/api/place/textsearch/json"
 
     def search_places(self, query:str, location:str=None) -> List[Dict]:
         """
@@ -26,13 +30,15 @@ class PlacesAPI:
             List of places matching the query
         """
 
-        if not self.api_key or self.api_key == 'AIzaSyCCHyFpswfK7odUmjp1gLpDlYgR5UcHr9I':
+        if not self.api_key:
             raise ValueError("Google Places API key is not set or is invalid.")
         
         # build search query
         search_query = query
         if location:
             search_query = f"{query} in {location}"
+        else:
+            search_query = f"{query}"
 
         try:
             params = {

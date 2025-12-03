@@ -285,97 +285,165 @@ def main():
 
         # ================= AUTOMATIC SCHEDULER =================
         elif cmd == "3":
-            scheduler = AutomaticScheduler(user_id)
+            while True:
+                print("\n" + "="*50)
+                print("               AUTOMATIC SCHEDULER")
+                print("="*50)
+                print("1. Build New Schedule")
+                print("2. Clear All Selections")
+                print("3. View Current Schedule")
+                print("4. View Weather Forecast")
+                print("5. Back to Main Menu")
+                sub_cmd = input("> ").strip().lower()
+                print()
 
-            # Optionally set time boundaries
-            print(
-                "\nWould you like to set custom time boundaries? "
-                "(default: 8:00 AM - 10:00 PM)"
-            )
-            if input(
-                "Enter 'y' for custom times: "
-            ).strip().lower() == "y":
-                print(
-                    "\nEnter times in HH:MM AM/PM format (e.g., 8:00 AM)"
-                )
-                start = input("Start time: ").strip()
-                end = input("End time: ").strip()
-                if not scheduler.set_time_boundaries(start, end):
-                    print("Using default time boundaries.")
-            
-            # Optionally set budget for time period
-            print("\nWould you like to set a budget? ")
-            if input(
-                "Enter 'y' to input budget: "
-            ).strip().lower() == "y":
-                user_budget = input("\nEnter budget (e.g. 230.00): ")
-                scheduler.set_budget(user_budget)
+                # ---- Build new schedule ----
+                if sub_cmd == "1":
+                    scheduler = AutomaticScheduler(user_id)
 
-            # Build and display schedule
-            schedule = scheduler.build_schedule()
-            if schedule:
-                scheduler.display_schedule(schedule)
-                
-                # Saves the schedule to be able to export if wanted later. 
-                saved_scheduler = scheduler
-                saved_schedule = schedule
-                most_recent = "auto"
-                
-                # Offer to generate suggestions for open time slots
-                print("\nWould you like to generate suggestions for open time slots?")
-                if input("Enter 'y' to generate suggestions: ").strip().lower() == "y":
-                    location = input("Enter location (e.g., Seattle, WA): ").strip()
-                    
-                    if location:
-                        print("\nGenerating suggestions...")
-                        suggestions = generate_suggestions(
-                            schedule=schedule,
-                            location=location,
-                            schedule_start=scheduler.schedule_start,
-                            schedule_end=scheduler.schedule_end,
-                            time_slot_duration=scheduler.time_slot_duration
+                    # Optionally set time boundaries
+                    print(
+                        "\nWould you like to set custom time boundaries? "
+                        "(default: 08:00 AM - 10:00 PM)"
+                    )
+                    if input(
+                        "Enter 'y' for custom times: "
+                    ).strip().lower() == "y":
+                        print(
+                            "\nEnter times in HH:MM AM/PM format (e.g., 08:00 AM)"
                         )
+                        start = input("Start time: ").strip()
+                        end = input("End time: ").strip()
+                        if not scheduler.set_time_boundaries(start, end):
+                            print("Using default time boundaries.")
+                    
+                    # Optionally set budget for time period
+                    print("\nWould you like to set a budget? ")
+                    if input(
+                        "Enter 'y' to input budget: "
+                    ).strip().lower() == "y":
+                        user_budget = input("\nEnter budget (e.g. 230.00): ")
+                        scheduler.set_budget(user_budget)
+
+                    # Build and display schedule
+                    schedule = scheduler.build_schedule()
+                    if schedule:
+                        scheduler.display_schedule(schedule)
                         
-                        if suggestions:
-                            display_suggestions(suggestions)
+                        # Saves the schedule to be able to export if wanted later. 
+                        saved_scheduler = scheduler
+                        saved_schedule = schedule
+                        most_recent = "auto"
+                        
+                        # Offer to generate suggestions for open time slots
+                        print("\nWould you like to generate suggestions for open time slots?")
+                        if input("Enter 'y' to generate suggestions: ").strip().lower() == "y":
+                            location = input("Enter location (e.g., Seattle, WA): ").strip()
                             
-                            # Review and approve suggestions
-                            print("Review suggestions above. Enter the numbers of suggestions to approve")
-                            print("(e.g., '1 3 5' to approve suggestions 1, 3, and 5, or 'all' for all)")
-                            approval_input = input("> ").strip().lower()
-                            
-                            approved_indices = []
-                            if approval_input == "all":
-                                approved_indices = list(range(len(suggestions)))
-                            else:
-                                try:
-                                    approved_indices = [
-                                        int(x.strip()) - 1  # Convert to 0-based index
-                                        for x in approval_input.split()
-                                        if x.strip().isdigit()
-                                    ]
-                                    # Filter valid indices
-                                    approved_indices = [
-                                        idx for idx in approved_indices
-                                        if 0 <= idx < len(suggestions)
-                                    ]
-                                except ValueError:
-                                    print("Invalid input. No suggestions approved.")
-                            
-                            if approved_indices:
-                                task_ids = insert_suggestions(user_id, suggestions, approved_indices)
-                                if task_ids:
-                                    print(f"\n✓ {len(task_ids)} suggestion(s) added to your tasks!")
-                                    print("These tasks are marked as '[Suggested]' and are automatically selected.")
-                                    print("\nYou can rebuild your schedule to include these new tasks.")
+                            if location:
+                                print("\nGenerating suggestions...")
+                                suggestions = generate_suggestions(
+                                    schedule=schedule,
+                                    location=location,
+                                    schedule_start=scheduler.schedule_start,
+                                    schedule_end=scheduler.schedule_end,
+                                    time_slot_duration=scheduler.time_slot_duration
+                                )
+                                
+                                if suggestions:
+                                    display_suggestions(suggestions)
+                                    
+                                    # Review and approve suggestions
+                                    print("Review suggestions above. Enter the numbers of suggestions to approve")
+                                    print("(e.g., '1 3 5' to approve suggestions 1, 3, and 5, or 'all' for all)")
+                                    approval_input = input("> ").strip().lower()
+                                    
+                                    approved_indices = []
+                                    if approval_input == "all":
+                                        approved_indices = list(range(len(suggestions)))
+                                    else:
+                                        try:
+                                            approved_indices = [
+                                                int(x.strip()) - 1  # Convert to 0-based index
+                                                for x in approval_input.split()
+                                                if x.strip().isdigit()
+                                            ]
+                                            # Filter valid indices
+                                            approved_indices = [
+                                                idx for idx in approved_indices
+                                                if 0 <= idx < len(suggestions)
+                                            ]
+                                        except ValueError:
+                                            print("Invalid input. No suggestions approved.")
+                                    
+                                    if approved_indices:
+                                        task_ids = insert_suggestions(user_id, suggestions, approved_indices)
+                                        if task_ids:
+                                            print(f"\n✓ {len(task_ids)} suggestion(s) added to your tasks!")
+                                            print("These tasks are marked as '[Suggested]' and are automatically selected.")
+                                            print("\nYou can rebuild your schedule to include these new tasks.")
+                                        else:
+                                            print("\nNo suggestions were added.")
+                                    else:
+                                        print("\nNo suggestions approved.")
                                 else:
-                                    print("\nNo suggestions were added.")
+                                    print("No suggestions could be generated.")
                             else:
-                                print("\nNo suggestions approved.")
-                        else:
-                            print("No suggestions could be generated.")
+                                print("Location is required to generate suggestions.")
+                
+                # ---- Clear schedule ----
+                elif sub_cmd == "2":
+                    print("\nClear all task selections? This will unselect ALL tasks.")
+                    confirm = input("Enter 'y' to confirm: ").strip().lower()
+                    if confirm == "y":
+                        repo = TaskRepo(user_id)
+                        # get all selected tasks and unselect them
+                        tasks = repo.list_tasks()
+                        for task in tasks:
+                            task_id = task[0]
+                            if task[3]:  # if selected
+                                repo.toggle_select(task_id)
+                        print("✓ All task selections cleared.")
+                        saved_scheduler = None
+                        saved_schedule = None
+                        most_recent = None
+
+                # ---- View current schedule ----
+                elif sub_cmd == "3":
+                    if saved_schedule:
+                        saved_scheduler.display_schedule(saved_schedule)
                     else:
-                        print("Location is required to generate suggestions.")
+                        print("No schedule available. Please build a new schedule first.")
+
+                # ---- View weather forecast ----
+                elif sub_cmd == "4":
+                    location = input(
+                        "Enter location for weather forecast (e.g., Seattle, WA): "
+                    ).strip()
+                    if not location:
+                        print("Location cannot be empty.")
+                        continue
+                    try:
+                        weather_data = get_weather_sync(location)
+                        if weather_data:
+                            print(f"\nWeather Forecast for {location}:")
+                            for entry in weather_data:
+                                dt = entry['datetime'].strftime("%Y-%m-%d %I:%M %p")
+                                temp = entry['temperature']
+                                desc = entry['description']
+                                print(f"{dt} | {temp}°F | {desc}")
+                        else:
+                            print("No weather data available.")
+                    except Exception as e:
+                        print(f"Error retrieving weather data: {e}")
+
+                # ---- Back to main menu ----
+                elif sub_cmd == "5":
+                    break
+
+                else:
+                    print("Invalid choice.")
+            
 
         # ================= SETTINGS MENU =================
         elif cmd == "4":
