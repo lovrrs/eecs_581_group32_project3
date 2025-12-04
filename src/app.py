@@ -65,8 +65,7 @@ def main():
                 print("3. List all tasks")
                 print("4. Select a task by ID")
                 print("5. Set task as flexible/fixed")
-                print("6. Export task info")
-                print("7. Back to Main Menu")
+                print("6. Back to Main Menu")
                 sub = input("> ").strip().lower()
                 print()
 
@@ -267,15 +266,8 @@ def main():
                     except Exception as e:
                         print("Error:", e)
 
-                # 6. Export task info
-                elif sub == "6":
-                    print("\n" + "="*50)
-                    print("                  EXPORT TASK INFO")
-                    print("="*50)
-                    export_tasks(repo)
-
                 # Back to main menu
-                elif sub == "7":
+                elif sub == "6":
                     break
                 else:
                     print("Invalid choice.")
