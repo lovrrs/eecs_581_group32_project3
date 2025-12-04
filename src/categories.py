@@ -19,12 +19,12 @@ class CategoryRepo:
         
         with get_connection() as conn:
             try:
-                conn.execute(
+                cur = conn.execute(
                     "INSERT INTO categories (user_id, name) VALUES (?, ?)",
                     (self.user_id, name.strip())
                 )
                 conn.commit()
-                return conn.lastrowid
+                return cur.lastrowid
             except sqlite3.IntegrityError:
                 raise ValueError(f"Category '{name}' already exists")
 
