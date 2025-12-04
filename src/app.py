@@ -491,17 +491,15 @@ def main():
                     print("\n" + "="*50)
                     print("                  BREAK SETTINGS")
                     print("="*50)
-                    if (
-                        input(
-                            "Enable automatic breaks (Y/N):  "
-                        ).strip().lower()
-                        == "y"
-                    ):
+                    choice = input("Enable automatic breaks (Y/N):  ").strip().lower()
+                    if (choice == "y"):
                         try:
                             break_id = 1
                             repo.toggle_select(break_id)
                         except Exception as e:
                             print("Error:", e)
+                    elif (choice == "n"):
+                        pass
                     else:
                         print("Invalid choice")
 
