@@ -94,8 +94,12 @@ def main():
                         )
                         or None
                         )
-                        cost = re.sub('[^0-9,.]', '', cost_unstripped)
+                        if (cost_unstripped):
+                            cost = re.sub('[^0-9,.]', '', cost_unstripped)
+                        else:
+                            cost = 0
                         duration = int(duration_str)
+                        
 
                         # show categories to assign
                         category_repo = CategoryRepo(user_id)
