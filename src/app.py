@@ -489,30 +489,21 @@ def main():
                     print("\n" + "="*50)
                     print("                  BREAK SETTINGS")
                     print("="*50)
-<<<<<<< Updated upstream
+
                     choice = input("Enable automatic breaks (Y/N):  ").strip().lower()
                     if (choice == "y"):
-=======
-                    if (
-                        input(
-                            "Edit break duration (Y/N):  "
-                        ).strip().lower()
-                        == "y"
-                    ):
->>>>>>> Stashed changes
-                        try:
-                            new_duration = int(input("Enter new break duration").strip())
-                            break_id = 1
-                            repo.edit_duration(break_id,new_duration)
-                        except Exception as e:
-                            print("Error:", e)
-<<<<<<< Updated upstream
-                    elif (choice == "n"):
-                        pass
-                    else:
-                        print("Invalid choice")
-=======
->>>>>>> Stashed changes
+                        if (
+                            input(
+                                "Edit break duration (Y/N):  "
+                            ).strip().lower()
+                            == "y"
+                        ):
+                            try:
+                                new_duration = int(input("Enter new break duration").strip())
+                                break_id = 1
+                                repo.edit_duration(break_id,new_duration)
+                            except Exception as e:
+                                print("Error:", e)
 
                 # ---- Vacation settings ----
                 elif sub == "3":
