@@ -2,4 +2,8 @@ pytest>=7.0
 requests
 python-weather==2.1.0
 python-dotenv==1.2.1
+<<<<<<< Updated upstream
 pyparsing
+=======
+pyparsing
+>>>>>>> Stashed changes

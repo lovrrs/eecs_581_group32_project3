@@ -201,6 +201,7 @@ class ManualScheduler:
         except Exception as e:
             print(f'Error saving schedule: {e}')
             return False
+        
 
 def run_manual_scheduler(user_id:int):
     """Main function to run the manual scheduler"""
@@ -350,7 +351,6 @@ def run_manual_scheduler(user_id:int):
                 print("Failed to update time boundaries. Please use HH:MM format.")
         elif choice == '7':
             """Insert Breaks"""
-
             for i in range(len(time_slots)-2):
                 if (time_slots[i]['task_id'] !=1 and time_slots[i+1]['task_id']!=1):
                         if (time_slots[i]['task_id'] and time_slots[i+1]['task_id']):

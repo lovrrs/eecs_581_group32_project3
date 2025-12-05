@@ -114,6 +114,23 @@ class TaskRepo:
                     ("flexible", task_id, self.user_id),
                 )
             conn.commit()
+    
+    def edit_duration(
+        self,
+        task_id: int,
+        duration_minutes: int,
+    ) -> None:
+        """Change duration field for a task."""
+        with get_connection() as conn:
+            try:
+                conn.execute(
+                    "UPDATE tasks SET duration_minutes=? "
+                    "WHERE id=? AND user_id=?",
+                    (duration_minutes, task_id, self.user_id),
+                )
+            except ValueError:
+                    raise ValueError("Invalid duration input.")
+            conn.commit()
 
     def get_fixed_tasks(self):
         """Get all fixed tasks for the user."""

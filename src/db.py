@@ -85,8 +85,15 @@ def run_migrations():
             )
             category_map = {name: id for id, name in cur.fetchall()}
 
-            default_tasks = [
+            conn.execute(
+                "INSERT INTO tasks (user_id, name, duration_minutes, "
+                "selected, category_id) "
+                "VALUES ((SELECT id FROM users WHERE username='default'), "
+                "?, ?, 1, ?)",
                 ("Break", 15, "Personal"),
+            )
+
+            default_tasks = [
                 ("Breakfast", 45, "Meals"),
                 ("Lunch", 45, "Meals"),
                 ("Dinner", 45, "Meals"),
@@ -111,5 +118,4 @@ def run_migrations():
                     "?, ?, 0, ?)",
                     (name, duration, category_id),
                 )
-
         conn.commit()
